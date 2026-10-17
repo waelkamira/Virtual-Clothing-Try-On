@@ -1,4 +1,4 @@
-import ColorThief from "colorthief"
+import * as ColorThief from "colorthief";
 
 export interface ExtractedColors {
   primary: string
