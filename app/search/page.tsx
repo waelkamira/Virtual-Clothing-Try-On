@@ -1,15 +1,23 @@
-"use client"
+'use client';
 
-import { useState, useEffect } from "react"
-import Image from "next/image"
-import Link from "next/link"
-import { motion } from "framer-motion"
-import { ArrowLeft, Search, Filter, X, Heart, ArrowRight, Check } from "lucide-react"
-import Navbar from "@/components/navbar"
-import Footer from "@/components/footer"
-import { Button } from "@/components/ui/button"
-import { useStore } from "@/contexts/store-context"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useState, useEffect } from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { motion } from 'framer-motion';
+import {
+  ArrowLeft,
+  Search,
+  Filter,
+  X,
+  Heart,
+  ArrowRight,
+  Check,
+} from 'lucide-react';
+import Navbar from '@/components/navbar';
+import Footer from '@/components/footer';
+import { Button } from '@/components/ui/button';
+import { useStore, type StoreItem } from '@/contexts/store-context';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function SearchPage() {
   const {
@@ -23,23 +31,23 @@ export default function SearchPage() {
     selectedItems,
     selectItem,
     unselectItem,
-  } = useStore()
-  const [isClient, setIsClient] = useState(false)
-  const [showFilters, setShowFilters] = useState(false)
-  const [activeTab, setActiveTab] = useState("all")
-  const [searchHistory, setSearchHistory] = useState<string[]>([])
-  const [suggestions, setSuggestions] = useState<string[]>([])
+  } = useStore();
+  const [isClient, setIsClient] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const [activeTab, setActiveTab] = useState('all');
+  const [searchHistory, setSearchHistory] = useState<string[]>([]);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
 
   // Fix hydration issues
   useEffect(() => {
-    setIsClient(true)
+    setIsClient(true);
 
     // Load search history from localStorage
-    const history = localStorage.getItem("searchHistory")
+    const history = localStorage.getItem('searchHistory');
     if (history) {
-      setSearchHistory(JSON.parse(history))
+      setSearchHistory(JSON.parse(history));
     }
-  }, [])
+  }, []);
 
   // Update suggestions based on search query
   useEffect(() => {
@@ -47,53 +55,69 @@ export default function SearchPage() {
       // Generate suggestions based on items and search history
       const itemSuggestions = items
         .map((item) => item.name)
-        .filter((name) => name.toLowerCase().includes(searchQuery.toLowerCase()))
-        .slice(0, 3)
+        .filter((name) =>
+          name.toLowerCase().includes(searchQuery.toLowerCase()),
+        )
+        .slice(0, 3);
 
       const historySuggestions = searchHistory
-        .filter((term) => term.toLowerCase().includes(searchQuery.toLowerCase()))
-        .slice(0, 2)
+        .filter((term) =>
+          term.toLowerCase().includes(searchQuery.toLowerCase()),
+        )
+        .slice(0, 2);
 
-      const categorySuggestions = ["Tops", "Bottoms", "Dresses", "Outerwear", "Shoes"]
+      const categorySuggestions = [
+        'Tops',
+        'Bottoms',
+        'Dresses',
+        'Outerwear',
+        'Shoes',
+      ]
         .filter((cat) => cat.toLowerCase().includes(searchQuery.toLowerCase()))
-        .slice(0, 2)
+        .slice(0, 2);
 
       // Combine and deduplicate suggestions
-      const allSuggestions = [...new Set([...historySuggestions, ...itemSuggestions, ...categorySuggestions])]
-      setSuggestions(allSuggestions.slice(0, 5))
+      const allSuggestions = [
+        ...new Set([
+          ...historySuggestions,
+          ...itemSuggestions,
+          ...categorySuggestions,
+        ]),
+      ];
+      setSuggestions(allSuggestions.slice(0, 5));
     } else {
-      setSuggestions([])
+      setSuggestions([]);
     }
-  }, [searchQuery, items, searchHistory])
+  }, [searchQuery, items, searchHistory]);
 
   const handleSearch = (query: string = searchQuery) => {
-    if (!query.trim()) return
+    if (!query.trim()) return;
 
-    setSearchQuery(query)
+    setSearchQuery(query);
 
     // Add to search history if not already present
     if (!searchHistory.includes(query)) {
-      const newHistory = [query, ...searchHistory].slice(0, 10)
-      setSearchHistory(newHistory)
-      localStorage.setItem("searchHistory", JSON.stringify(newHistory))
+      const newHistory = [query, ...searchHistory].slice(0, 10);
+      setSearchHistory(newHistory);
+      localStorage.setItem('searchHistory', JSON.stringify(newHistory));
     }
 
     // Clear suggestions
-    setSuggestions([])
-  }
+    setSuggestions([]);
+  };
 
   const clearSearchHistory = () => {
-    setSearchHistory([])
-    localStorage.removeItem("searchHistory")
-  }
+    setSearchHistory([]);
+    localStorage.removeItem('searchHistory');
+  };
 
-  const handleSelectItem = (item: any) => {
+  const handleSelectItem = (item: StoreItem) => {
     if (selectedItems.some((i) => i.id === item.id)) {
-      unselectItem(item.id)
+      unselectItem(item.id);
     } else {
-      selectItem(item)
+      selectItem(item);
     }
-  }
+  };
 
   if (!isClient) {
     return (
@@ -106,7 +130,7 @@ export default function SearchPage() {
         </main>
         <Footer />
       </div>
-    )
+    );
   }
 
   return (
@@ -137,8 +161,8 @@ export default function SearchPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    handleSearch()
+                  if (e.key === 'Enter') {
+                    handleSearch();
                   }
                 }}
               />
@@ -146,7 +170,7 @@ export default function SearchPage() {
                 {searchQuery && (
                   <button
                     className="p-1 hover:bg-background/80 rounded-full transition-colors"
-                    onClick={() => setSearchQuery("")}
+                    onClick={() => setSearchQuery('')}
                   >
                     <X size={16} className="text-muted-foreground" />
                   </button>
@@ -155,7 +179,12 @@ export default function SearchPage() {
                   className="p-1 hover:bg-background/80 rounded-full transition-colors"
                   onClick={() => setShowFilters(!showFilters)}
                 >
-                  <Filter size={16} className={showFilters ? "text-orange-500" : "text-muted-foreground"} />
+                  <Filter
+                    size={16}
+                    className={
+                      showFilters ? 'text-orange-500' : 'text-muted-foreground'
+                    }
+                  />
                 </button>
               </div>
             </div>
@@ -170,7 +199,10 @@ export default function SearchPage() {
                         className="w-full px-4 py-2 text-left hover:bg-orange-500/10 flex items-center"
                         onClick={() => handleSearch(suggestion)}
                       >
-                        <Search size={16} className="mr-2 text-muted-foreground" />
+                        <Search
+                          size={16}
+                          className="mr-2 text-muted-foreground"
+                        />
                         <span>{suggestion}</span>
                       </button>
                     </li>
@@ -184,7 +216,7 @@ export default function SearchPage() {
           {showFilters && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
+              animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.3 }}
               className="mb-6 bg-card/50 backdrop-blur-md border border-border rounded-xl p-6 overflow-hidden"
@@ -205,21 +237,33 @@ export default function SearchPage() {
                 <div>
                   <h3 className="font-medium mb-2">Categories</h3>
                   <div className="space-y-1">
-                    {["Tops", "Bottoms", "Dresses", "Outerwear", "Shoes", "Accessories"].map((category) => (
+                    {[
+                      'Tops',
+                      'Bottoms',
+                      'Dresses',
+                      'Outerwear',
+                      'Shoes',
+                      'Accessories',
+                    ].map((category) => (
                       <div key={category} className="flex items-center">
                         <input
                           type="checkbox"
                           id={`category-${category}`}
                           checked={filters.categories.includes(category)}
                           onChange={() => {
-                            const newCategories = filters.categories.includes(category)
+                            const newCategories = filters.categories.includes(
+                              category,
+                            )
                               ? filters.categories.filter((c) => c !== category)
-                              : [...filters.categories, category]
-                            updateFilters("categories", newCategories)
+                              : [...filters.categories, category];
+                            updateFilters('categories', newCategories);
                           }}
                           className="w-4 h-4 rounded border-input text-orange-500 focus:ring-orange-500"
                         />
-                        <label htmlFor={`category-${category}`} className="ml-2 text-sm">
+                        <label
+                          htmlFor={`category-${category}`}
+                          className="ml-2 text-sm"
+                        >
                           {category}
                         </label>
                       </div>
@@ -233,10 +277,13 @@ export default function SearchPage() {
                     <input
                       type="number"
                       placeholder="Min"
-                      value={filters.priceRange[0] || ""}
+                      value={filters.priceRange[0] || ''}
                       onChange={(e) => {
-                        const min = Number.parseInt(e.target.value) || 0
-                        updateFilters("priceRange", [min, filters.priceRange[1]])
+                        const min = Number.parseInt(e.target.value) || 0;
+                        updateFilters('priceRange', [
+                          min,
+                          filters.priceRange[1],
+                        ]);
                       }}
                       className="w-full px-3 py-2 bg-background/50 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-sm"
                     />
@@ -244,10 +291,13 @@ export default function SearchPage() {
                     <input
                       type="number"
                       placeholder="Max"
-                      value={filters.priceRange[1] || ""}
+                      value={filters.priceRange[1] || ''}
                       onChange={(e) => {
-                        const max = Number.parseInt(e.target.value) || 200
-                        updateFilters("priceRange", [filters.priceRange[0], max])
+                        const max = Number.parseInt(e.target.value) || 200;
+                        updateFilters('priceRange', [
+                          filters.priceRange[0],
+                          max,
+                        ]);
                       }}
                       className="w-full px-3 py-2 bg-background/50 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-sm"
                     />
@@ -257,20 +307,29 @@ export default function SearchPage() {
                 <div>
                   <h3 className="font-medium mb-2">Colors</h3>
                   <div className="flex flex-wrap gap-2">
-                    {["Red", "Blue", "Green", "Black", "White", "Gray", "Brown", "Pink"].map((color) => (
+                    {[
+                      'Red',
+                      'Blue',
+                      'Green',
+                      'Black',
+                      'White',
+                      'Gray',
+                      'Brown',
+                      'Pink',
+                    ].map((color) => (
                       <button
                         key={color}
                         className={`w-8 h-8 rounded-full border ${
                           filters.colors.includes(color)
-                            ? "border-orange-500 ring-2 ring-orange-500 ring-offset-2 ring-offset-background"
-                            : "border-border"
+                            ? 'border-orange-500 ring-2 ring-orange-500 ring-offset-2 ring-offset-background'
+                            : 'border-border'
                         }`}
                         style={{ backgroundColor: color.toLowerCase() }}
                         onClick={() => {
                           const newColors = filters.colors.includes(color)
                             ? filters.colors.filter((c) => c !== color)
-                            : [...filters.colors, color]
-                          updateFilters("colors", newColors)
+                            : [...filters.colors, color];
+                          updateFilters('colors', newColors);
                         }}
                         title={color}
                       />
@@ -314,7 +373,10 @@ export default function SearchPage() {
             <div>
               <Tabs defaultValue="all" onValueChange={setActiveTab}>
                 <TabsList className="bg-background/50 border border-border p-1 mb-6">
-                  <TabsTrigger value="all" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white">
+                  <TabsTrigger
+                    value="all"
+                    className="data-[state=active]:bg-orange-500 data-[state=active]:text-white"
+                  >
                     All Results
                   </TabsTrigger>
                   <TabsTrigger
@@ -344,16 +406,20 @@ export default function SearchPage() {
                 </TabsList>
 
                 <TabsContent value="all" className="mt-0">
-                  <SearchResults items={filteredItems} selectedItems={selectedItems} onSelectItem={handleSelectItem} />
+                  <SearchResults
+                    items={filteredItems}
+                    selectedItems={selectedItems}
+                    onSelectItem={handleSelectItem}
+                  />
                 </TabsContent>
 
                 <TabsContent value="tops" className="mt-0">
                   <SearchResults
                     items={filteredItems.filter(
                       (item) =>
-                        item.category.toLowerCase().includes("top") ||
-                        item.category.toLowerCase().includes("shirt") ||
-                        item.category.toLowerCase().includes("blouse"),
+                        item.category.toLowerCase().includes('top') ||
+                        item.category.toLowerCase().includes('shirt') ||
+                        item.category.toLowerCase().includes('blouse'),
                     )}
                     selectedItems={selectedItems}
                     onSelectItem={handleSelectItem}
@@ -364,10 +430,10 @@ export default function SearchPage() {
                   <SearchResults
                     items={filteredItems.filter(
                       (item) =>
-                        item.category.toLowerCase().includes("bottom") ||
-                        item.category.toLowerCase().includes("pant") ||
-                        item.category.toLowerCase().includes("jean") ||
-                        item.category.toLowerCase().includes("skirt"),
+                        item.category.toLowerCase().includes('bottom') ||
+                        item.category.toLowerCase().includes('pant') ||
+                        item.category.toLowerCase().includes('jean') ||
+                        item.category.toLowerCase().includes('skirt'),
                     )}
                     selectedItems={selectedItems}
                     onSelectItem={handleSelectItem}
@@ -376,7 +442,9 @@ export default function SearchPage() {
 
                 <TabsContent value="dresses" className="mt-0">
                   <SearchResults
-                    items={filteredItems.filter((item) => item.category.toLowerCase().includes("dress"))}
+                    items={filteredItems.filter((item) =>
+                      item.category.toLowerCase().includes('dress'),
+                    )}
                     selectedItems={selectedItems}
                     onSelectItem={handleSelectItem}
                   />
@@ -386,9 +454,9 @@ export default function SearchPage() {
                   <SearchResults
                     items={filteredItems.filter(
                       (item) =>
-                        item.category.toLowerCase().includes("outerwear") ||
-                        item.category.toLowerCase().includes("jacket") ||
-                        item.category.toLowerCase().includes("coat"),
+                        item.category.toLowerCase().includes('outerwear') ||
+                        item.category.toLowerCase().includes('jacket') ||
+                        item.category.toLowerCase().includes('coat'),
                     )}
                     selectedItems={selectedItems}
                     onSelectItem={handleSelectItem}
@@ -404,8 +472,12 @@ export default function SearchPage() {
               <div className="max-w-4xl mx-auto bg-card border border-border rounded-lg shadow-lg p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="font-medium">Selected Items ({selectedItems.length})</h3>
-                    <p className="text-sm text-muted-foreground">Ready to try on these items?</p>
+                    <h3 className="font-medium">
+                      Selected Items ({selectedItems.length})
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      Ready to try on these items?
+                    </p>
                   </div>
                   <Button
                     className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700"
@@ -425,11 +497,21 @@ export default function SearchPage() {
 
       <Footer />
     </div>
-  )
+  );
+}
+
+interface SearchResultsProps {
+  items: StoreItem[];
+  selectedItems: StoreItem[];
+  onSelectItem: (item: StoreItem) => void;
 }
 
 // Search results component
-function SearchResults({ items, selectedItems, onSelectItem }) {
+function SearchResults({
+  items,
+  selectedItems,
+  onSelectItem,
+}: SearchResultsProps) {
   if (items.length === 0) {
     return (
       <div className="text-center py-12">
@@ -438,10 +520,11 @@ function SearchResults({ items, selectedItems, onSelectItem }) {
         </div>
         <h3 className="text-xl font-bold mb-2">No results found</h3>
         <p className="text-muted-foreground max-w-md mx-auto">
-          We couldn't find any items matching your search criteria. Try adjusting your filters or search term.
+          We couldn't find any items matching your search criteria. Try
+          adjusting your filters or search term.
         </p>
       </div>
-    )
+    );
   }
 
   return (
@@ -456,11 +539,18 @@ function SearchResults({ items, selectedItems, onSelectItem }) {
         >
           <div
             className={`bg-card/50 backdrop-blur-md border ${
-              selectedItems.some((i) => i.id === item.id) ? "border-orange-500" : "border-border"
+              selectedItems.some((i) => i.id === item.id)
+                ? 'border-orange-500'
+                : 'border-border'
             } rounded-xl overflow-hidden hover:border-orange-500/50 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-orange-500/10`}
           >
             <div className="relative aspect-[3/4]">
-              <Image src={item.image || "/placeholder.svg"} alt={item.name} fill className="object-cover" />
+              <Image
+                src={item.image || '/placeholder.svg'}
+                alt={item.name}
+                fill
+                className="object-cover"
+              />
 
               {selectedItems.some((i) => i.id === item.id) && (
                 <div className="absolute top-3 right-3 w-6 h-6 rounded-full bg-orange-500 flex items-center justify-center text-white">
@@ -473,8 +563,8 @@ function SearchResults({ items, selectedItems, onSelectItem }) {
                   size="sm"
                   className={`w-full ${
                     selectedItems.some((i) => i.id === item.id)
-                      ? "bg-orange-600 hover:bg-orange-700"
-                      : "bg-orange-500 hover:bg-orange-600"
+                      ? 'bg-orange-600 hover:bg-orange-700'
+                      : 'bg-orange-500 hover:bg-orange-600'
                   }`}
                   onClick={() => onSelectItem(item)}
                 >
@@ -498,17 +588,23 @@ function SearchResults({ items, selectedItems, onSelectItem }) {
                 {item.name}
               </h3>
               <div className="flex justify-between items-center mt-1">
-                <span className="text-xs text-muted-foreground">{item.brand}</span>
-                <span className="font-semibold text-orange-500">${item.price}</span>
+                <span className="text-xs text-muted-foreground">
+                  {item.brand}
+                </span>
+                <span className="font-semibold text-orange-500">
+                  ${item.price}
+                </span>
               </div>
 
               <div className="mt-3 flex justify-between items-center">
                 <div className="flex">
-                  {["XS", "S", "M", "L", "XL"].map((size) => (
+                  {['XS', 'S', 'M', 'L', 'XL'].map((size) => (
                     <span
                       key={size}
                       className={`w-6 h-6 flex items-center justify-center text-xs ${
-                        item.size === size ? "text-orange-500 font-medium" : "text-muted-foreground"
+                        item.size === size
+                          ? 'text-orange-500 font-medium'
+                          : 'text-muted-foreground'
                       }`}
                     >
                       {size}
@@ -525,6 +621,5 @@ function SearchResults({ items, selectedItems, onSelectItem }) {
         </motion.div>
       ))}
     </div>
-  )
+  );
 }
-

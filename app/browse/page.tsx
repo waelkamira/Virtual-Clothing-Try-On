@@ -1,46 +1,49 @@
-"use client"
+'use client';
 
-import { useState, useEffect } from "react"
-import { useSearchParams } from "next/navigation"
-import Link from "next/link"
-import { ArrowLeft } from "lucide-react"
-import Navbar from "@/components/navbar"
-import Footer from "@/components/footer"
-import WebView from "@/components/web-view"
-import { useStore } from "@/contexts/store-context"
-import { useToast } from "@/components/ui/use-toast"
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
+import Navbar from '@/components/navbar';
+import Footer from '@/components/footer';
+import WebView from '@/components/web-view';
+import { useStore } from '@/contexts/store-context';
+import { useToast } from '@/components/ui/use-toast';
 
 export default function BrowsePage() {
-  const searchParams = useSearchParams()
-  const { openInWebView, closeWebView, extractProductsFromWebView, webViewUrl } = useStore()
-  const { toast } = useToast()
-  const [isClient, setIsClient] = useState(false)
+  const searchParams = useSearchParams();
+  const {
+    openInWebView,
+    closeWebView,
+    extractProductsFromWebView,
+    webViewUrl,
+  } = useStore();
+  const { toast } = useToast();
+  const [isClient, setIsClient] = useState(false);
 
   // Fix hydration issues
   useEffect(() => {
-    setIsClient(true)
+    setIsClient(true);
 
     // Get URL from query params
-    const url = searchParams.get("url")
+    const url = searchParams.get('url');
     if (url) {
-      openInWebView(url)
+      openInWebView(url);
     }
-  }, [searchParams, openInWebView])
+  }, [searchParams, openInWebView]);
 
   // Handle extraction
-  const handleExtractProducts = async () => {
+  const handleExtractProducts = async (): Promise<void> => {
     try {
-      await extractProductsFromWebView()
-      return true
+      await extractProductsFromWebView();
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to extract products. Please try again.",
-        variant: "destructive",
-      })
-      return false
+        title: 'Error',
+        description: 'Failed to extract products. Please try again.',
+        variant: 'destructive',
+      });
     }
-  }
+  };
 
   if (!isClient) {
     return (
@@ -53,7 +56,7 @@ export default function BrowsePage() {
         </main>
         <Footer />
       </div>
-    )
+    );
   }
 
   // If no URL is provided, show a form to enter one
@@ -77,17 +80,20 @@ export default function BrowsePage() {
               <h2 className="text-xl font-bold mb-4">Enter a URL to browse</h2>
               <form
                 onSubmit={(e) => {
-                  e.preventDefault()
-                  const form = e.target as HTMLFormElement
-                  const url = new FormData(form).get("url") as string
+                  e.preventDefault();
+                  const form = e.target as HTMLFormElement;
+                  const url = new FormData(form).get('url') as string;
                   if (url) {
-                    openInWebView(url)
+                    openInWebView(url);
                   }
                 }}
                 className="space-y-4"
               >
                 <div>
-                  <label htmlFor="url" className="block text-sm font-medium mb-1">
+                  <label
+                    htmlFor="url"
+                    className="block text-sm font-medium mb-1"
+                  >
                     Website URL
                   </label>
                   <input
@@ -111,10 +117,15 @@ export default function BrowsePage() {
         </main>
         <Footer />
       </div>
-    )
+    );
   }
 
   // Show WebView
-  return <WebView url={webViewUrl} onClose={closeWebView} onExtractProducts={handleExtractProducts} />
+  return (
+    <WebView
+      url={webViewUrl}
+      onClose={closeWebView}
+      onExtractProducts={handleExtractProducts}
+    />
+  );
 }
-

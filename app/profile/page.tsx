@@ -1,34 +1,42 @@
-"use client"
+'use client';
 
-import { useState } from "react"
-import Link from "next/link"
-import Image from "next/image"
-import { ArrowLeft, Mail, Phone, MapPin, Camera, Edit2, Save } from "lucide-react"
-import Navbar from "@/components/navbar"
-import Footer from "@/components/footer"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useToast } from "@/components/ui/use-toast"
+import { useState, type ChangeEvent } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
+import {
+  ArrowLeft,
+  Mail,
+  Phone,
+  MapPin,
+  Camera,
+  Edit2,
+  Save,
+} from 'lucide-react';
+import Navbar from '@/components/navbar';
+import Footer from '@/components/footer';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useToast } from '@/components/ui/use-toast';
 
 export default function ProfilePage() {
-  const { toast } = useToast()
+  const { toast } = useToast();
 
   // Mock user data - in a real app, this would come from authentication
   const [user, setUser] = useState({
-    name: "John Doe",
-    email: "john.doe@example.com",
-    phone: "+1 (555) 123-4567",
+    name: 'John Doe',
+    email: 'john.doe@example.com',
+    phone: '+1 (555) 123-4567',
     address: {
-      street: "123 Main St",
-      city: "New York",
-      state: "NY",
-      zip: "10001",
-      country: "United States",
+      street: '123 Main St',
+      city: 'New York',
+      state: 'NY',
+      zip: '10001',
+      country: 'United States',
     },
-    avatar: "/placeholder.svg?height=200&width=200&text=JD",
+    avatar: '/placeholder.svg?height=200&width=200&text=JD',
     measurements: {
       height: 180, // cm
       weight: 75, // kg
@@ -39,85 +47,96 @@ export default function ProfilePage() {
       shoulder: 45, // cm
       sleeve: 65, // cm
     },
-  })
+  });
 
-  const [isEditing, setIsEditing] = useState(false)
-  const [editedUser, setEditedUser] = useState(user)
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedUser, setEditedUser] = useState(user);
 
   // Mock order history
   const [orders, setOrders] = useState([
     {
-      id: "ORD-12345",
-      date: "2023-06-15",
+      id: 'ORD-12345',
+      date: '2023-06-15',
       total: 129.99,
-      status: "Delivered",
+      status: 'Delivered',
       items: [
         {
-          id: "item-1",
-          name: "Classic White T-Shirt",
+          id: 'item-1',
+          name: 'Classic White T-Shirt',
           price: 29.99,
           quantity: 1,
-          image: "/placeholder.svg?height=100&width=80&text=T-Shirt",
+          image: '/placeholder.svg?height=100&width=80&text=T-Shirt',
         },
         {
-          id: "item-2",
-          name: "Slim Fit Jeans",
+          id: 'item-2',
+          name: 'Slim Fit Jeans',
           price: 99.99,
           quantity: 1,
-          image: "/placeholder.svg?height=100&width=80&text=Jeans",
+          image: '/placeholder.svg?height=100&width=80&text=Jeans',
         },
       ],
     },
     {
-      id: "ORD-12346",
-      date: "2023-05-20",
+      id: 'ORD-12346',
+      date: '2023-05-20',
       total: 79.99,
-      status: "Delivered",
+      status: 'Delivered',
       items: [
         {
-          id: "item-3",
-          name: "Wool Sweater",
+          id: 'item-3',
+          name: 'Wool Sweater',
           price: 79.99,
           quantity: 1,
-          image: "/placeholder.svg?height=100&width=80&text=Sweater",
+          image: '/placeholder.svg?height=100&width=80&text=Sweater',
         },
       ],
     },
-  ])
+  ]);
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
 
-    if (name.includes(".")) {
-      const [section, field] = name.split(".")
-      setEditedUser({
-        ...editedUser,
-        [section]: {
-          ...editedUser[section],
-          [field]: value,
-        },
-      })
+    if (name.includes('.')) {
+      const [section, field] = name.split('.') as [
+        'address' | 'measurements',
+        string,
+      ];
+      setEditedUser((prev) => {
+        const currentSection = prev[section] as Record<string, string | number>;
+        const parsedValue =
+          section === 'measurements' && !Number.isNaN(Number(value))
+            ? Number(value)
+            : value;
+
+        return {
+          ...prev,
+          [section]: {
+            ...currentSection,
+            [field]: parsedValue,
+          },
+        };
+      });
     } else {
-      setEditedUser({
-        ...editedUser,
+      setEditedUser((prev) => ({
+        ...prev,
         [name]: value,
-      })
+      }));
     }
-  }
+  };
 
   const handleSave = () => {
-    setUser(editedUser)
-    setIsEditing(false)
+    setUser(editedUser);
+    setIsEditing(false);
     toast({
-      title: "Profile updated",
-      description: "Your profile information has been updated successfully",
-    })
-  }
+      title: 'Profile updated',
+      description: 'Your profile information has been updated successfully',
+    });
+  };
 
   const handleCancel = () => {
-    setEditedUser(user)
-    setIsEditing(false)
-  }
+    setEditedUser(user);
+    setIsEditing(false);
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -140,7 +159,7 @@ export default function ProfilePage() {
               <CardContent className="p-6 flex flex-col items-center">
                 <div className="relative w-32 h-32 mb-4">
                   <Image
-                    src={user.avatar || "/placeholder.svg"}
+                    src={user.avatar || '/placeholder.svg'}
                     alt={user.name}
                     fill
                     className="object-cover rounded-full"
@@ -164,13 +183,17 @@ export default function ProfilePage() {
                   <div className="flex items-start">
                     <MapPin className="h-4 w-4 mr-2 text-muted-foreground mt-0.5" />
                     <span className="text-sm">
-                      {user.address.street}, {user.address.city}, {user.address.state} {user.address.zip},{" "}
+                      {user.address.street}, {user.address.city},{' '}
+                      {user.address.state} {user.address.zip},{' '}
                       {user.address.country}
                     </span>
                   </div>
                 </div>
 
-                <Button className="w-full mt-6 bg-orange-500 hover:bg-orange-600" onClick={() => setIsEditing(true)}>
+                <Button
+                  className="w-full mt-6 bg-orange-500 hover:bg-orange-600"
+                  onClick={() => setIsEditing(true)}
+                >
                   <Edit2 className="mr-2 h-4 w-4" />
                   Edit Profile
                 </Button>
@@ -197,7 +220,12 @@ export default function ProfilePage() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
                             <Label htmlFor="name">Full Name</Label>
-                            <Input id="name" name="name" value={editedUser.name} onChange={handleInputChange} />
+                            <Input
+                              id="name"
+                              name="name"
+                              value={editedUser.name}
+                              onChange={handleInputChange}
+                            />
                           </div>
                           <div>
                             <Label htmlFor="email">Email</Label>
@@ -211,7 +239,12 @@ export default function ProfilePage() {
                           </div>
                           <div>
                             <Label htmlFor="phone">Phone</Label>
-                            <Input id="phone" name="phone" value={editedUser.phone} onChange={handleInputChange} />
+                            <Input
+                              id="phone"
+                              name="phone"
+                              value={editedUser.phone}
+                              onChange={handleInputChange}
+                            />
                           </div>
                         </div>
 
@@ -267,7 +300,10 @@ export default function ProfilePage() {
                         </div>
 
                         <div className="flex gap-2 mt-6">
-                          <Button className="bg-orange-500 hover:bg-orange-600" onClick={handleSave}>
+                          <Button
+                            className="bg-orange-500 hover:bg-orange-600"
+                            onClick={handleSave}
+                          >
                             <Save className="mr-2 h-4 w-4" />
                             Save Changes
                           </Button>
@@ -280,15 +316,21 @@ export default function ProfilePage() {
                       <div className="space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
-                            <h3 className="text-sm font-medium text-muted-foreground">Full Name</h3>
+                            <h3 className="text-sm font-medium text-muted-foreground">
+                              Full Name
+                            </h3>
                             <p>{user.name}</p>
                           </div>
                           <div>
-                            <h3 className="text-sm font-medium text-muted-foreground">Email</h3>
+                            <h3 className="text-sm font-medium text-muted-foreground">
+                              Email
+                            </h3>
                             <p>{user.email}</p>
                           </div>
                           <div>
-                            <h3 className="text-sm font-medium text-muted-foreground">Phone</h3>
+                            <h3 className="text-sm font-medium text-muted-foreground">
+                              Phone
+                            </h3>
                             <p>{user.phone}</p>
                           </div>
                         </div>
@@ -297,23 +339,33 @@ export default function ProfilePage() {
                           <h3 className="text-lg font-medium mb-3">Address</h3>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                              <h3 className="text-sm font-medium text-muted-foreground">Street</h3>
+                              <h3 className="text-sm font-medium text-muted-foreground">
+                                Street
+                              </h3>
                               <p>{user.address.street}</p>
                             </div>
                             <div>
-                              <h3 className="text-sm font-medium text-muted-foreground">City</h3>
+                              <h3 className="text-sm font-medium text-muted-foreground">
+                                City
+                              </h3>
                               <p>{user.address.city}</p>
                             </div>
                             <div>
-                              <h3 className="text-sm font-medium text-muted-foreground">State/Province</h3>
+                              <h3 className="text-sm font-medium text-muted-foreground">
+                                State/Province
+                              </h3>
                               <p>{user.address.state}</p>
                             </div>
                             <div>
-                              <h3 className="text-sm font-medium text-muted-foreground">ZIP/Postal Code</h3>
+                              <h3 className="text-sm font-medium text-muted-foreground">
+                                ZIP/Postal Code
+                              </h3>
                               <p>{user.address.zip}</p>
                             </div>
                             <div>
-                              <h3 className="text-sm font-medium text-muted-foreground">Country</h3>
+                              <h3 className="text-sm font-medium text-muted-foreground">
+                                Country
+                              </h3>
                               <p>{user.address.country}</p>
                             </div>
                           </div>
@@ -332,36 +384,68 @@ export default function ProfilePage() {
                   <CardContent>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       <div className="p-4 bg-card/50 border border-border rounded-lg">
-                        <h3 className="text-sm font-medium text-muted-foreground mb-1">Height</h3>
-                        <p className="text-xl font-bold">{user.measurements.height} cm</p>
+                        <h3 className="text-sm font-medium text-muted-foreground mb-1">
+                          Height
+                        </h3>
+                        <p className="text-xl font-bold">
+                          {user.measurements.height} cm
+                        </p>
                       </div>
                       <div className="p-4 bg-card/50 border border-border rounded-lg">
-                        <h3 className="text-sm font-medium text-muted-foreground mb-1">Weight</h3>
-                        <p className="text-xl font-bold">{user.measurements.weight} kg</p>
+                        <h3 className="text-sm font-medium text-muted-foreground mb-1">
+                          Weight
+                        </h3>
+                        <p className="text-xl font-bold">
+                          {user.measurements.weight} kg
+                        </p>
                       </div>
                       <div className="p-4 bg-card/50 border border-border rounded-lg">
-                        <h3 className="text-sm font-medium text-muted-foreground mb-1">Chest</h3>
-                        <p className="text-xl font-bold">{user.measurements.chest} cm</p>
+                        <h3 className="text-sm font-medium text-muted-foreground mb-1">
+                          Chest
+                        </h3>
+                        <p className="text-xl font-bold">
+                          {user.measurements.chest} cm
+                        </p>
                       </div>
                       <div className="p-4 bg-card/50 border border-border rounded-lg">
-                        <h3 className="text-sm font-medium text-muted-foreground mb-1">Waist</h3>
-                        <p className="text-xl font-bold">{user.measurements.waist} cm</p>
+                        <h3 className="text-sm font-medium text-muted-foreground mb-1">
+                          Waist
+                        </h3>
+                        <p className="text-xl font-bold">
+                          {user.measurements.waist} cm
+                        </p>
                       </div>
                       <div className="p-4 bg-card/50 border border-border rounded-lg">
-                        <h3 className="text-sm font-medium text-muted-foreground mb-1">Hips</h3>
-                        <p className="text-xl font-bold">{user.measurements.hips} cm</p>
+                        <h3 className="text-sm font-medium text-muted-foreground mb-1">
+                          Hips
+                        </h3>
+                        <p className="text-xl font-bold">
+                          {user.measurements.hips} cm
+                        </p>
                       </div>
                       <div className="p-4 bg-card/50 border border-border rounded-lg">
-                        <h3 className="text-sm font-medium text-muted-foreground mb-1">Inseam</h3>
-                        <p className="text-xl font-bold">{user.measurements.inseam} cm</p>
+                        <h3 className="text-sm font-medium text-muted-foreground mb-1">
+                          Inseam
+                        </h3>
+                        <p className="text-xl font-bold">
+                          {user.measurements.inseam} cm
+                        </p>
                       </div>
                       <div className="p-4 bg-card/50 border border-border rounded-lg">
-                        <h3 className="text-sm font-medium text-muted-foreground mb-1">Shoulder</h3>
-                        <p className="text-xl font-bold">{user.measurements.shoulder} cm</p>
+                        <h3 className="text-sm font-medium text-muted-foreground mb-1">
+                          Shoulder
+                        </h3>
+                        <p className="text-xl font-bold">
+                          {user.measurements.shoulder} cm
+                        </p>
                       </div>
                       <div className="p-4 bg-card/50 border border-border rounded-lg">
-                        <h3 className="text-sm font-medium text-muted-foreground mb-1">Sleeve</h3>
-                        <p className="text-xl font-bold">{user.measurements.sleeve} cm</p>
+                        <h3 className="text-sm font-medium text-muted-foreground mb-1">
+                          Sleeve
+                        </h3>
+                        <p className="text-xl font-bold">
+                          {user.measurements.sleeve} cm
+                        </p>
                       </div>
                     </div>
 
@@ -382,14 +466,21 @@ export default function ProfilePage() {
                     {orders.length > 0 ? (
                       <div className="space-y-6">
                         {orders.map((order) => (
-                          <div key={order.id} className="border border-border rounded-lg overflow-hidden">
+                          <div
+                            key={order.id}
+                            className="border border-border rounded-lg overflow-hidden"
+                          >
                             <div className="bg-muted p-4 flex flex-wrap items-center justify-between gap-4">
                               <div>
                                 <h3 className="font-medium">{order.id}</h3>
-                                <p className="text-sm text-muted-foreground">Ordered on {order.date}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  Ordered on {order.date}
+                                </p>
                               </div>
                               <div className="text-right">
-                                <p className="font-bold text-orange-500">${order.total.toFixed(2)}</p>
+                                <p className="font-bold text-orange-500">
+                                  ${order.total.toFixed(2)}
+                                </p>
                                 <span className="inline-block px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">
                                   {order.status}
                                 </span>
@@ -403,7 +494,7 @@ export default function ProfilePage() {
                                 >
                                   <div className="w-16 h-16 relative">
                                     <Image
-                                      src={item.image || "/placeholder.svg"}
+                                      src={item.image || '/placeholder.svg'}
                                       alt={item.name}
                                       fill
                                       className="object-cover rounded"
@@ -411,10 +502,14 @@ export default function ProfilePage() {
                                   </div>
                                   <div className="flex-1">
                                     <h4 className="font-medium">{item.name}</h4>
-                                    <p className="text-sm text-muted-foreground">Qty: {item.quantity}</p>
+                                    <p className="text-sm text-muted-foreground">
+                                      Qty: {item.quantity}
+                                    </p>
                                   </div>
                                   <div className="text-right">
-                                    <p className="font-medium">${item.price.toFixed(2)}</p>
+                                    <p className="font-medium">
+                                      ${item.price.toFixed(2)}
+                                    </p>
                                   </div>
                                 </div>
                               ))}
@@ -424,9 +519,16 @@ export default function ProfilePage() {
                       </div>
                     ) : (
                       <div className="text-center py-12">
-                        <h3 className="text-lg font-medium mb-2">No orders yet</h3>
-                        <p className="text-muted-foreground mb-6">You haven't placed any orders yet</p>
-                        <Button className="bg-orange-500 hover:bg-orange-600" asChild>
+                        <h3 className="text-lg font-medium mb-2">
+                          No orders yet
+                        </h3>
+                        <p className="text-muted-foreground mb-6">
+                          You haven't placed any orders yet
+                        </p>
+                        <Button
+                          className="bg-orange-500 hover:bg-orange-600"
+                          asChild
+                        >
                           <Link href="/stores">Start Shopping</Link>
                         </Button>
                       </div>
@@ -441,6 +543,5 @@ export default function ProfilePage() {
 
       <Footer />
     </div>
-  )
+  );
 }
-
