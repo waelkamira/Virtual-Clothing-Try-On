@@ -1,6 +1,12 @@
-import ColorThief from "colorthief";
+import { getColor, getPalette } from "colorthief";
 
-const { getColor, getPalette } = ColorThief as any;
+function colorToRgb(color: unknown): [number, number, number] | null {
+  if (!color || typeof color !== "object") return null
+
+  const value = color as { rgb?: () => [number, number, number]; toRgb?: () => [number, number, number] }
+  const rgb = value.rgb?.() ?? value.toRgb?.()
+  return Array.isArray(rgb) && rgb.length >= 3 ? [rgb[0], rgb[1], rgb[2]] : null
+}
 
 export interface ExtractedColors {
   primary: string
@@ -16,16 +22,22 @@ export async function extractColorsFromImage(imageUrl: string): Promise<Extracte
       const img = new Image()
       img.crossOrigin = "Anonymous"
 
-      img.onload = () => {
+      img.onload = async () => {
         try {
-          // Get dominant color and a palette
-          const dominantColor = getColor(img)
-          const palette = getPalette(img, 5)
+          // ColorThief 3 returns Color objects from its async API.
+          const dominantColor = colorToRgb(await getColor(img))
+          const palette = (await getPalette(img, { colorCount: 5 }))
+            ?.map(colorToRgb)
+            .filter((color): color is [number, number, number] => color !== null) ?? []
+
+          if (!dominantColor || palette.length < 3) {
+            throw new Error("Unable to extract a usable color palette")
+          }
 
           // Convert RGB to hex
-          const primaryHex = rgbToHex(dominantColor[0], dominantColor[1], dominantColor[2])
-          const secondaryHex = rgbToHex(palette[1][0], palette[1][1], palette[1][2])
-          const accentHex = rgbToHex(palette[2][0], palette[2][1], palette[2][2])
+          const primaryHex = rgbToHex(...dominantColor)
+          const secondaryHex = rgbToHex(...palette[1])
+          const accentHex = rgbToHex(...palette[2])
 
           // Create a background color (lighter version of dominant)
           const backgroundHex = lightenColor(primaryHex, 0.85)
