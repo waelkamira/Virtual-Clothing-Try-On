@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
-import { ArrowLeft, Search, Filter, X, ShoppingBag, ArrowRight, Upload, Sparkles, Loader2 } from "lucide-react"
+import { ArrowLeft, Search, Filter, X, ShoppingBag, Upload, Sparkles, Loader2 } from "lucide-react"
 import Navbar from "@/components/navbar"
 import Footer from "@/components/footer"
 import { Button } from "@/components/ui/button"
@@ -24,7 +24,6 @@ export default function OnlineSearchPage() {
   const [showFilters, setShowFilters] = useState(false)
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [isSearching, setIsSearching] = useState(false)
-  const [selectedItems, setSelectedItems] = useState<string[]>([])
   const [tryOnProduct, setTryOnProduct] = useState<any | null>(null)
   const [userPhotoUrl, setUserPhotoUrl] = useState<string | null>(null)
   const [tryOnResult, setTryOnResult] = useState<string | null>(null)
@@ -76,34 +75,24 @@ export default function OnlineSearchPage() {
     }
   }
 
-  const handleSelectItem = (itemId: string) => {
-    setSelectedItems((prev) => (prev.includes(itemId) ? prev.filter((id) => id !== itemId) : [...prev, itemId]))
-  }
-
   const handleOpenTryOn = (product: any) => {
     setTryOnProduct(product)
     setTryOnResult(null)
     setTryOnError(null)
-    setUserPhotoUrl(null)
+    setUserPhotoUrl(typeof window !== "undefined" ? sessionStorage.getItem("try-on-photo-url") : null)
   }
 
-  const handleTryOnPhoto = async (file: File) => {
+  const generateTryOn = async (photoUrl: string) => {
     if (!tryOnProduct) return
     setIsTryOnProcessing(true)
     setTryOnError(null)
+    setUserPhotoUrl(photoUrl)
     try {
-      const uploadData = new FormData()
-      uploadData.append("file", file)
-      const uploadResponse = await fetch("/api/upload", { method: "POST", body: uploadData })
-      const uploaded = await uploadResponse.json()
-      if (!uploadResponse.ok || !uploaded.url) throw new Error(uploaded.error || "Photo upload failed")
-      setUserPhotoUrl(uploaded.url)
-
       const response = await fetch("/api/try-on", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userPhotoUrl: uploaded.url,
+          userPhotoUrl: photoUrl,
           itemImageUrl: tryOnProduct.image,
           category: tryOnProduct.category,
         }),
@@ -118,23 +107,18 @@ export default function OnlineSearchPage() {
     }
   }
 
-  const handleTryOn = () => {
-    const selectedProducts = searchResults.filter((item) => selectedItems.includes(item.id))
-
-    if (selectedProducts.length === 0) {
-      toast({
-        title: "No items selected",
-        description: "Please select at least one item to try on",
-        variant: "destructive",
-      })
-      return
+  const handleTryOnPhoto = async (file: File) => {
+    try {
+      const uploadData = new FormData()
+      uploadData.append("file", file)
+      const uploadResponse = await fetch("/api/upload", { method: "POST", body: uploadData })
+      const uploaded = await uploadResponse.json()
+      if (!uploadResponse.ok || !uploaded.url) throw new Error(uploaded.error || "Photo upload failed")
+      sessionStorage.setItem("try-on-photo-url", uploaded.url)
+      await generateTryOn(uploaded.url)
+    } catch (error) {
+      setTryOnError(error instanceof Error ? error.message : "Photo upload failed")
     }
-
-    // In a real app, we would import these products and redirect to try-on page
-    toast({
-      title: "Items selected for try-on",
-      description: `${selectedProducts.length} items will be prepared for virtual try-on`,
-    })
   }
 
   return (
@@ -260,24 +244,6 @@ export default function OnlineSearchPage() {
                 <Card key={result.id} className="overflow-hidden group">
                   <div className="relative aspect-[3/4]">
                     <Image src={result.image || "/placeholder.svg"} alt={result.name} fill className="object-cover" />
-                    {selectedItems.includes(result.id) && (
-                      <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-orange-500 flex items-center justify-center">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="14"
-                          height="14"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="3"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="text-white"
-                        >
-                          <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
-                      </div>
-                    )}
                   </div>
 
                   <CardContent className="p-3">
@@ -306,25 +272,6 @@ export default function OnlineSearchPage() {
               ))}
             </div>
 
-            {selectedItems.length > 0 && (
-              <div className="fixed bottom-4 left-0 right-0 z-10 px-4">
-                <div className="max-w-4xl mx-auto bg-card border border-border rounded-lg shadow-lg p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-medium">Selected Items ({selectedItems.length})</h3>
-                      <p className="text-sm text-muted-foreground">Ready to try on these items?</p>
-                    </div>
-                    <Button
-                      className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700"
-                      onClick={handleTryOn}
-                    >
-                      Try On Now
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
           </>
         ) : searchQuery && !isSearching ? (
           <div className="text-center py-12">
@@ -379,18 +326,27 @@ export default function OnlineSearchPage() {
                   <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-orange-500/15 text-orange-500">
                     {isTryOnProcessing ? <Loader2 className="h-7 w-7 animate-spin" /> : <Upload className="h-7 w-7" />}
                   </div>
-                  <h3 className="mb-2 font-semibold">{isTryOnProcessing ? "Creating your look..." : "Upload your photo to begin"}</h3>
+                  <h3 className="mb-2 font-semibold">{isTryOnProcessing ? "Creating your look..." : userPhotoUrl ? "Use this photo or choose another" : "Choose a photo to begin"}</h3>
                   <p className="mx-auto mb-5 max-w-md text-sm text-muted-foreground">
-                    {isTryOnProcessing ? "Our AI is applying the selected item to your image. This may take a moment." : "Choose a clear full-body photo. Your image is securely uploaded for this try-on."}
+                    {isTryOnProcessing ? "Our AI is applying the selected item to your image. This may take a moment." : "Use your saved photo or upload a new clear full-body image."}
                   </p>
-                  <label className={`inline-flex cursor-pointer items-center rounded-full bg-orange-500 px-5 py-2.5 font-medium text-white transition hover:bg-orange-600 ${isTryOnProcessing ? "pointer-events-none opacity-60" : ""}`}>
-                    <Upload className="mr-2 h-4 w-4" />
-                    {isTryOnProcessing ? "Processing..." : "Choose Photo"}
-                    <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" disabled={isTryOnProcessing} onChange={(event) => {
-                      const file = event.target.files?.[0]
-                      if (file) void handleTryOnPhoto(file)
-                    }} />
-                  </label>
+                  {userPhotoUrl && !isTryOnProcessing && (
+                    <div className="mx-auto mb-4 flex max-w-xs items-center gap-3 rounded-xl border border-orange-500/30 bg-background/70 p-2 text-left">
+                      <div className="relative h-14 w-14 overflow-hidden rounded-lg bg-muted"><Image src={userPhotoUrl} alt="Your saved photo" fill className="object-cover" unoptimized /></div>
+                      <div><p className="text-sm font-medium">Saved photo ready</p><p className="text-xs text-muted-foreground">Use it for this product</p></div>
+                      <Button size="sm" className="ml-auto bg-orange-500 hover:bg-orange-600" onClick={() => void generateTryOn(userPhotoUrl)}>Use</Button>
+                    </div>
+                  )}
+                  <div className="flex flex-wrap justify-center gap-3">
+                    <label className={`inline-flex cursor-pointer items-center rounded-full bg-orange-500 px-5 py-2.5 font-medium text-white transition hover:bg-orange-600 ${isTryOnProcessing ? "pointer-events-none opacity-60" : ""}`}>
+                      <Upload className="mr-2 h-4 w-4" />
+                      {isTryOnProcessing ? "Processing..." : "Upload New Photo"}
+                      <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" disabled={isTryOnProcessing} onChange={(event) => {
+                        const file = event.target.files?.[0]
+                        if (file) void handleTryOnPhoto(file)
+                      }} />
+                    </label>
+                  </div>
                   {tryOnError && <p className="mt-4 text-sm text-destructive">{tryOnError}</p>}
                 </div>
                 {tryOnProduct && (
