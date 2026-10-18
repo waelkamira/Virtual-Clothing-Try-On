@@ -33,18 +33,19 @@ export class ImageProcessingService {
     clothingItem: ClothingItem,
     viewType: ViewType,
   ): Promise<string> {
-    // In a real implementation, this would:
-    // 1. Load both images
-    // 2. Use computer vision to detect the user's body
-    // 3. Apply transformations to the clothing item
-    // 4. Merge the images
-    // 5. Return the URL of the processed image
-
-    // For demonstration purposes, we'll simulate this process with a delay
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-
-    // Return a placeholder image URL
-    return `/placeholder.svg?height=600&width=400&text=${encodeURIComponent(`${viewType.toUpperCase()} VIEW - ${clothingItem.category} in ${clothingItem.color}`)}`
+    const response = await fetch("/api/try-on", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userPhotoUrl,
+        itemImageUrl: clothingItem.image,
+        category: clothingItem.category,
+        viewType,
+      }),
+    })
+    if (!response.ok) throw new Error("Try-on generation failed")
+    const data = await response.json()
+    return data.url as string
   }
 
   /**

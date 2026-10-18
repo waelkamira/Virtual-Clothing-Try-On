@@ -11,7 +11,7 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 py-2 px-4 z-10">
+    <nav className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-gray-200 py-2 px-4 z-[100] shadow-[0_-8px_30px_rgba(0,0,0,0.08)]" aria-label="Primary navigation">
       <div className="flex justify-around items-center">
         <Link href="/" className={`flex flex-col items-center ${isActive("/") ? "text-[#B38867]" : "text-gray-500"}`}>
           <Home className="h-6 w-6" />
