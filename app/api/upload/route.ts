@@ -13,8 +13,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Use a JPG, PNG, or WebP image up to 10MB" }, { status: 400 })
     }
     const extension = file.type.split("/")[1]
-    const blob = await put(`try-on/${crypto.randomUUID()}.${extension}`, file, { access: "public", addRandomSuffix: false })
-    return NextResponse.json({ url: blob.url })
+    const pathname = `try-on/${crypto.randomUUID()}.${extension}`
+    await put(pathname, file, { access: "private", addRandomSuffix: false })
+    return NextResponse.json({ url: `/api/file?pathname=${encodeURIComponent(pathname)}` })
   } catch (error) {
     console.error("[v0] Upload failed", error)
     return NextResponse.json({ error: "Upload failed" }, { status: 500 })
