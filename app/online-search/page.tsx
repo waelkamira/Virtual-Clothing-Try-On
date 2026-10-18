@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { useStore } from "@/contexts/store-context"
 import { useToast } from "@/components/ui/use-toast"
+import { testProducts } from "@/lib/test-products"
 
 export default function OnlineSearchPage() {
   const searchParams = useSearchParams()
@@ -40,23 +41,24 @@ export default function OnlineSearchPage() {
     setSearchResults([])
 
     try {
-      // Simulate online search with a delay
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+      // Use a deterministic local catalog so the try-on flow can be tested
+      // without depending on third-party store APIs or unstable scraping.
+      await new Promise((resolve) => setTimeout(resolve, 350))
 
-      // Generate mock search results
-      const mockResults = Array.from({ length: 12 }, (_, i) => ({
-        id: `result-${i}`,
-        name: `${query} Product ${i + 1}`,
-        price: Math.floor(Math.random() * 100) + 20,
-        image: `/placeholder.svg?height=300&width=200&text=Product${i + 1}`,
-        store: {
-          name: ["Amazon", "ASOS", "H&M", "Zara", "Nike"][Math.floor(Math.random() * 5)],
-          logo: `/placeholder.svg?height=30&width=30&text=${["A", "AS", "H", "Z", "N"][Math.floor(Math.random() * 5)]}`,
-        },
-        url: `https://example.com/product-${i}`,
+      const normalizedQuery = query.trim().toLowerCase()
+      const matchingProducts = testProducts.filter((product) =>
+        [product.name, product.brand, product.category, product.color, product.storeId]
+          .join(" ")
+          .toLowerCase()
+          .includes(normalizedQuery),
+      )
+      const results = (matchingProducts.length > 0 ? matchingProducts : testProducts).slice(0, 50).map((product) => ({
+        ...product,
+        store: { name: product.storeId === "hm" ? "H&M" : product.storeId === "asos" ? "ASOS" : product.storeId.charAt(0).toUpperCase() + product.storeId.slice(1), logo: product.storeLogo },
+        url: `https://${product.storeUrl}/products/${product.id}`,
       }))
 
-      setSearchResults(mockResults)
+      setSearchResults(results)
     } catch (err) {
       toast({
         title: "Search failed",
