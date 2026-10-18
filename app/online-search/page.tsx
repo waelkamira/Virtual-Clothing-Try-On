@@ -141,7 +141,7 @@ export default function OnlineSearchPage() {
     <div className="min-h-screen bg-background">
       <Navbar />
 
-      <main className="container mx-auto px-4 pt-24 pb-16">
+      <main className="container mx-auto px-4 pt-24 pb-32">
         <div className="flex items-center mb-6">
           <Link
             href="/"
@@ -260,16 +260,6 @@ export default function OnlineSearchPage() {
                 <Card key={result.id} className="overflow-hidden group">
                   <div className="relative aspect-[3/4]">
                     <Image src={result.image || "/placeholder.svg"} alt={result.name} fill className="object-cover" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
-                      <Button
-                        className="w-full bg-orange-500 hover:bg-orange-600"
-                        onClick={() => handleOpenTryOn(result)}
-                      >
-                        <Sparkles className="mr-2 h-4 w-4" />
-                        Try On
-                      </Button>
-                    </div>
-
                     {selectedItems.includes(result.id) && (
                       <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-orange-500 flex items-center justify-center">
                         <svg
@@ -304,6 +294,13 @@ export default function OnlineSearchPage() {
                     </div>
                     <h3 className="font-medium text-sm line-clamp-2">{result.name}</h3>
                     <p className="font-bold text-orange-500 mt-1">${result.price}</p>
+                    <Button
+                      className="mt-3 w-full bg-orange-500 hover:bg-orange-600"
+                      onClick={() => handleOpenTryOn(result)}
+                    >
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      Try On
+                    </Button>
                   </CardContent>
                 </Card>
               ))}
