@@ -1,4 +1,6 @@
-import { getColor, getPalette } from "colorthief";
+import ColorThief from "colorthief";
+
+const { getColor, getPalette } = ColorThief as any;
 
 export interface ExtractedColors {
   primary: string

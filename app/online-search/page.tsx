@@ -4,12 +4,13 @@ import { useState, useEffect } from "react"
 import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
-import { ArrowLeft, Search, Filter, X, ShoppingBag, ArrowRight } from "lucide-react"
+import { ArrowLeft, Search, Filter, X, ShoppingBag, ArrowRight, Upload, Sparkles, Loader2 } from "lucide-react"
 import Navbar from "@/components/navbar"
 import Footer from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useStore } from "@/contexts/store-context"
 import { useToast } from "@/components/ui/use-toast"
 import { testProducts } from "@/lib/test-products"
@@ -24,6 +25,11 @@ export default function OnlineSearchPage() {
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const [selectedItems, setSelectedItems] = useState<string[]>([])
+  const [tryOnProduct, setTryOnProduct] = useState<any | null>(null)
+  const [userPhotoUrl, setUserPhotoUrl] = useState<string | null>(null)
+  const [tryOnResult, setTryOnResult] = useState<string | null>(null)
+  const [isTryOnProcessing, setIsTryOnProcessing] = useState(false)
+  const [tryOnError, setTryOnError] = useState<string | null>(null)
 
   // Initialize search query from URL params
   useEffect(() => {
@@ -72,6 +78,44 @@ export default function OnlineSearchPage() {
 
   const handleSelectItem = (itemId: string) => {
     setSelectedItems((prev) => (prev.includes(itemId) ? prev.filter((id) => id !== itemId) : [...prev, itemId]))
+  }
+
+  const handleOpenTryOn = (product: any) => {
+    setTryOnProduct(product)
+    setTryOnResult(null)
+    setTryOnError(null)
+    setUserPhotoUrl(null)
+  }
+
+  const handleTryOnPhoto = async (file: File) => {
+    if (!tryOnProduct) return
+    setIsTryOnProcessing(true)
+    setTryOnError(null)
+    try {
+      const uploadData = new FormData()
+      uploadData.append("file", file)
+      const uploadResponse = await fetch("/api/upload", { method: "POST", body: uploadData })
+      const uploaded = await uploadResponse.json()
+      if (!uploadResponse.ok || !uploaded.url) throw new Error(uploaded.error || "Photo upload failed")
+      setUserPhotoUrl(uploaded.url)
+
+      const response = await fetch("/api/try-on", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userPhotoUrl: uploaded.url,
+          itemImageUrl: tryOnProduct.image,
+          category: tryOnProduct.category,
+        }),
+      })
+      const result = await response.json()
+      if (!response.ok || !result.url) throw new Error(result.error || "Try-on generation failed")
+      setTryOnResult(result.url)
+    } catch (error) {
+      setTryOnError(error instanceof Error ? error.message : "Try-on generation failed")
+    } finally {
+      setIsTryOnProcessing(false)
+    }
   }
 
   const handleTryOn = () => {
@@ -219,9 +263,10 @@ export default function OnlineSearchPage() {
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
                       <Button
                         className="w-full bg-orange-500 hover:bg-orange-600"
-                        onClick={() => handleSelectItem(result.id)}
+                        onClick={() => handleOpenTryOn(result)}
                       >
-                        {selectedItems.includes(result.id) ? <>Selected</> : <>Select for Try-On</>}
+                        <Sparkles className="mr-2 h-4 w-4" />
+                        Try On
                       </Button>
                     </div>
 
@@ -307,6 +352,61 @@ export default function OnlineSearchPage() {
       </main>
 
       <Footer />
+
+      <Dialog open={Boolean(tryOnProduct)} onOpenChange={(open) => !open && setTryOnProduct(null)}>
+        <DialogContent className="max-w-2xl overflow-hidden border-orange-500/20 bg-background/95 p-0 backdrop-blur-xl">
+          <DialogHeader className="border-b border-border px-6 py-5">
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <Sparkles className="h-5 w-5 text-orange-500" />
+              Virtual Try-On
+            </DialogTitle>
+            <DialogDescription>
+              {tryOnProduct ? `See ${tryOnProduct.name} on you in seconds.` : ""}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="p-6">
+            {tryOnResult ? (
+              <div className="space-y-4">
+                <div className="relative mx-auto aspect-square max-h-[55vh] overflow-hidden rounded-2xl bg-muted">
+                  <Image src={tryOnResult} alt={`Virtual try-on result for ${tryOnProduct?.name}`} fill className="object-contain" unoptimized />
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm text-muted-foreground">AI styling complete. You can close this window and keep browsing.</p>
+                  <Button variant="outline" onClick={() => setTryOnResult(null)}>Try Again</Button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-5">
+                <div className="rounded-2xl border border-dashed border-orange-500/40 bg-orange-500/5 p-8 text-center">
+                  <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-orange-500/15 text-orange-500">
+                    {isTryOnProcessing ? <Loader2 className="h-7 w-7 animate-spin" /> : <Upload className="h-7 w-7" />}
+                  </div>
+                  <h3 className="mb-2 font-semibold">{isTryOnProcessing ? "Creating your look..." : "Upload your photo to begin"}</h3>
+                  <p className="mx-auto mb-5 max-w-md text-sm text-muted-foreground">
+                    {isTryOnProcessing ? "Our AI is applying the selected item to your image. This may take a moment." : "Choose a clear full-body photo. Your image is securely uploaded for this try-on."}
+                  </p>
+                  <label className={`inline-flex cursor-pointer items-center rounded-full bg-orange-500 px-5 py-2.5 font-medium text-white transition hover:bg-orange-600 ${isTryOnProcessing ? "pointer-events-none opacity-60" : ""}`}>
+                    <Upload className="mr-2 h-4 w-4" />
+                    {isTryOnProcessing ? "Processing..." : "Choose Photo"}
+                    <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" disabled={isTryOnProcessing} onChange={(event) => {
+                      const file = event.target.files?.[0]
+                      if (file) void handleTryOnPhoto(file)
+                    }} />
+                  </label>
+                  {tryOnError && <p className="mt-4 text-sm text-destructive">{tryOnError}</p>}
+                </div>
+                {tryOnProduct && (
+                  <div className="flex items-center gap-3 rounded-xl border border-border p-3">
+                    <div className="relative h-16 w-16 overflow-hidden rounded-lg bg-muted"><Image src={tryOnProduct.image || "/placeholder.svg"} alt={tryOnProduct.name} fill className="object-cover" /></div>
+                    <div><p className="font-medium">{tryOnProduct.name}</p><p className="text-sm text-muted-foreground">{tryOnProduct.store?.name} · ${tryOnProduct.price}</p></div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
