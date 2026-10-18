@@ -244,6 +244,15 @@ export default function OnlineSearchPage() {
                 <Card key={result.id} className="overflow-hidden group">
                   <div className="relative aspect-[3/4]">
                     <Image src={result.image || "/placeholder.svg"} alt={result.name} fill className="object-cover" />
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="absolute left-3 right-3 top-3 z-10 bg-orange-500/95 shadow-lg backdrop-blur-sm hover:bg-orange-600"
+                      onClick={() => handleOpenTryOn(result)}
+                    >
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      Try On
+                    </Button>
                   </div>
 
                   <CardContent className="p-3">
@@ -260,13 +269,6 @@ export default function OnlineSearchPage() {
                     </div>
                     <h3 className="font-medium text-sm line-clamp-2">{result.name}</h3>
                     <p className="font-bold text-orange-500 mt-1">${result.price}</p>
-                    <Button
-                      className="mt-3 w-full bg-orange-500 hover:bg-orange-600"
-                      onClick={() => handleOpenTryOn(result)}
-                    >
-                      <Sparkles className="mr-2 h-4 w-4" />
-                      Try On
-                    </Button>
                   </CardContent>
                 </Card>
               ))}
