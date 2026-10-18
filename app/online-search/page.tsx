@@ -125,7 +125,7 @@ export default function OnlineSearchPage() {
     <div className="min-h-screen bg-background">
       <Navbar />
 
-      <main className="container mx-auto px-4 pt-24 pb-32">
+      <main className="container mx-auto px-4 pt-24 pb-44 sm:pb-36">
         <div className="flex items-center mb-6">
           <Link
             href="/"
@@ -298,7 +298,7 @@ export default function OnlineSearchPage() {
       <Footer />
 
       <Dialog open={Boolean(tryOnProduct)} onOpenChange={(open) => !open && setTryOnProduct(null)}>
-        <DialogContent className="max-w-2xl overflow-hidden border-orange-500/20 bg-background/95 p-0 backdrop-blur-xl">
+        <DialogContent className="z-[200] max-h-[calc(100dvh-2rem)] max-w-2xl overflow-y-auto overflow-hidden border-orange-500/20 bg-background/95 p-0 backdrop-blur-xl">
           <DialogHeader className="border-b border-border px-6 py-5">
             <DialogTitle className="flex items-center gap-2 text-xl">
               <Sparkles className="h-5 w-5 text-orange-500" />
