@@ -1,4 +1,4 @@
-import ColorThief from "colorthief";
+import { getColor, getPalette } from "colorthief";
 
 export interface ExtractedColors {
   primary: string
@@ -15,12 +15,10 @@ export async function extractColorsFromImage(imageUrl: string): Promise<Extracte
       img.crossOrigin = "Anonymous"
 
       img.onload = () => {
-        const colorThief = new ColorThief()
-
         try {
           // Get dominant color and a palette
-          const dominantColor = colorThief.getColor(img)
-          const palette = colorThief.getPalette(img, 5)
+          const dominantColor = getColor(img)
+          const palette = getPalette(img, 5)
 
           // Convert RGB to hex
           const primaryHex = rgbToHex(dominantColor[0], dominantColor[1], dominantColor[2])
