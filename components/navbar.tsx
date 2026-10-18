@@ -11,7 +11,7 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="fixed top-3 left-1/2 z-[70] w-[calc(100%-2rem)] max-w-7xl -translate-x-1/2 rounded-2xl border border-gray-200 bg-white/95 px-4 py-2 shadow-[0_8px_30px_rgba(0,0,0,0.08)] backdrop-blur-xl" aria-label="Primary navigation">
+    <nav className="fixed top-[5.75rem] left-1/2 z-[60] w-[calc(100%-2rem)] max-w-7xl -translate-x-1/2 rounded-2xl border border-gray-200 bg-white/95 px-4 py-2 shadow-[0_8px_30px_rgba(0,0,0,0.08)] backdrop-blur-xl" aria-label="Primary navigation">
       <div className="flex justify-around items-center">
         <Link href="/" className={`flex flex-col items-center ${isActive("/") ? "text-[#B38867]" : "text-gray-500"}`}>
           <Home className="h-6 w-6" />

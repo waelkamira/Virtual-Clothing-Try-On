@@ -18,7 +18,7 @@ export default function GlassNavbar() {
   ]
 
   return (
-    <header className="fixed top-[6.75rem] left-0 right-0 z-50 px-4 py-3">
+    <header className="fixed top-0 left-0 right-0 z-50 px-4 py-3">
       <div className="max-w-7xl mx-auto">
         <div className="backdrop-blur-md bg-white/30 dark:bg-gray-900/30 border border-white/20 rounded-full shadow-lg px-4 py-2">
           <div className="flex items-center justify-between">
