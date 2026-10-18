@@ -34,9 +34,12 @@ export default function EnhancedTryOn({ onPhotoCapture }: EnhancedTryOnProps) {
     const file = e.target.files?.[0]
     if (file) {
       setIsUploading(true)
-      const reader = new FileReader()
-      reader.onload = async (event) => {
-        const imageUrl = event.target?.result as string
+      try {
+        const formData = new FormData()
+        formData.append("file", file)
+        const response = await fetch("/api/upload", { method: "POST", body: formData })
+        if (!response.ok) throw new Error("Upload failed")
+        const { url: imageUrl } = await response.json()
         setUploadedImage(imageUrl)
         setIsUploading(false)
         if (onPhotoCapture) onPhotoCapture(imageUrl)
@@ -60,8 +63,11 @@ export default function EnhancedTryOn({ onPhotoCapture }: EnhancedTryOnProps) {
         } catch (error) {
           console.error("Failed to extract measurements:", error)
         }
+      } catch (error) {
+        console.error("[v0] Upload failed", error)
+        setIsUploading(false)
+        toast({ title: "Upload failed", description: "Please choose a JPG, PNG, or WebP image under 10MB.", variant: "destructive" })
       }
-      reader.readAsDataURL(file)
     }
   }
 
