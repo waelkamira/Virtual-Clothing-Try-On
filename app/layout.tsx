@@ -5,7 +5,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { StoreProvider } from "@/contexts/store-context"
 import { UserProvider } from "@/contexts/user-context"
 import { Toaster } from "@/components/ui/toaster"
-import Navbar from "@/components/navbar"
+import GlassNavbar from "@/components/glass-navbar"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -31,8 +31,8 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="light">
           <StoreProvider>
             <UserProvider>
-              <Navbar />
-              <main className="pt-28 pb-16 px-4 sm:px-6 md:px-8 max-w-7xl mx-auto">{children}</main>
+              <GlassNavbar />
+              <main className="pt-36 pb-16 px-4 sm:px-6 md:px-8 max-w-7xl mx-auto">{children}</main>
               <Toaster />
             </UserProvider>
           </StoreProvider>

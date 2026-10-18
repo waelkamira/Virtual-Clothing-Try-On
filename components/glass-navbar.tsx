@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { motion } from "framer-motion"
-import { Home, Search, ShoppingBag, Camera, User, Sun, Moon } from "lucide-react"
+import { Home, ShoppingBag, User, Sun, Moon } from "lucide-react"
 import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
 
@@ -13,14 +13,12 @@ export default function GlassNavbar() {
 
   const navItems = [
     { href: "/", icon: Home, label: "Home" },
-    { href: "/search", icon: Search, label: "Search" },
     { href: "/stores", icon: ShoppingBag, label: "Stores" },
-    { href: "/upload", icon: Camera, label: "Try On" },
-    { href: "/profile", icon: User, label: "Profile" },
+    { href: "/upload", icon: User, label: "Try On" },
   ]
 
   return (
-    <header className="fixed top-4 left-0 right-0 z-[70] px-4 py-2">
+    <header className="fixed top-[6.75rem] left-0 right-0 z-50 px-4 py-3">
       <div className="max-w-7xl mx-auto">
         <div className="backdrop-blur-md bg-white/30 dark:bg-gray-900/30 border border-white/20 rounded-full shadow-lg px-4 py-2">
           <div className="flex items-center justify-between">
@@ -52,9 +50,7 @@ export default function GlassNavbar() {
                           transition={{ type: "spring", duration: 0.6 }}
                         />
                       )}
-                      <item.icon className="h-4 w-4" aria-hidden="true" />
-                      <span className="hidden sm:inline">{item.label}</span>
-                      <span className="sr-only sm:hidden">{item.label}</span>
+                      <item.icon className="h-4 w-4" />
                     </Button>
                   </Link>
                 )

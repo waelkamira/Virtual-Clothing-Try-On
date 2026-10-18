@@ -13,6 +13,7 @@ import {
   ArrowRight,
   Sparkles,
 } from 'lucide-react';
+import Navbar from '@/components/navbar';
 import Footer from '@/components/footer';
 import { Button } from '@/components/ui/button';
 import { useStore, type StoreItem } from '@/contexts/store-context';
@@ -116,7 +117,8 @@ export default function SearchPage() {
   if (!isClient) {
     return (
       <div className="min-h-screen bg-background text-foreground">
-      <main className="pt-28 pb-24">
+        <Navbar />
+      <main className="pt-44 pb-24">
           <div className="container mx-auto px-4">
             <h1 className="text-2xl font-bold mb-8">Loading search...</h1>
           </div>
@@ -128,7 +130,9 @@ export default function SearchPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <main className="pt-28 pb-16">
+      <Navbar />
+
+      <main className="pt-44 pb-16">
         <div className="container mx-auto px-4">
           <div className="flex items-center mb-8">
             <Link
