@@ -12,12 +12,14 @@ import {
   Heart,
   ArrowRight,
   Check,
+  Sparkles,
 } from 'lucide-react';
 import Navbar from '@/components/navbar';
 import Footer from '@/components/footer';
 import { Button } from '@/components/ui/button';
 import { useStore, type StoreItem } from '@/contexts/store-context';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import EnhancedTryOn from '@/components/enhanced-try-on';
 
 export default function SearchPage() {
   const {
@@ -37,6 +39,7 @@ export default function SearchPage() {
   const [activeTab, setActiveTab] = useState('all');
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [tryOnItem, setTryOnItem] = useState<StoreItem | null>(null);
 
   // Fix hydration issues
   useEffect(() => {
@@ -119,11 +122,18 @@ export default function SearchPage() {
     }
   };
 
+  const handleTryOn = (item: StoreItem) => {
+    if (!selectedItems.some((selected) => selected.id === item.id)) {
+      selectItem(item);
+    }
+    setTryOnItem(item);
+  };
+
   if (!isClient) {
     return (
       <div className="min-h-screen bg-background text-foreground">
         <Navbar />
-        <main className="pt-24 pb-16">
+      <main className="pt-24 pb-32 md:pb-24">
           <div className="container mx-auto px-4">
             <h1 className="text-2xl font-bold mb-8">Loading search...</h1>
           </div>
@@ -410,6 +420,7 @@ export default function SearchPage() {
                     items={filteredItems}
                     selectedItems={selectedItems}
                     onSelectItem={handleSelectItem}
+                    onTryOn={handleTryOn}
                   />
                 </TabsContent>
 
@@ -423,6 +434,7 @@ export default function SearchPage() {
                     )}
                     selectedItems={selectedItems}
                     onSelectItem={handleSelectItem}
+                    onTryOn={handleTryOn}
                   />
                 </TabsContent>
 
@@ -437,6 +449,7 @@ export default function SearchPage() {
                     )}
                     selectedItems={selectedItems}
                     onSelectItem={handleSelectItem}
+                    onTryOn={handleTryOn}
                   />
                 </TabsContent>
 
@@ -447,6 +460,7 @@ export default function SearchPage() {
                     )}
                     selectedItems={selectedItems}
                     onSelectItem={handleSelectItem}
+                    onTryOn={handleTryOn}
                   />
                 </TabsContent>
 
@@ -460,34 +474,46 @@ export default function SearchPage() {
                     )}
                     selectedItems={selectedItems}
                     onSelectItem={handleSelectItem}
+                    onTryOn={handleTryOn}
                   />
                 </TabsContent>
               </Tabs>
             </div>
           )}
 
-          {/* Selected items */}
-          {selectedItems.length > 0 && (
-            <div className="fixed bottom-4 left-0 right-0 z-10 px-4">
-              <div className="max-w-4xl mx-auto bg-card border border-border rounded-lg shadow-lg p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-medium">
-                      Selected Items ({selectedItems.length})
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      Ready to try on these items?
-                    </p>
+          {tryOnItem && (
+            <div
+              className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="try-on-title"
+              onClick={() => setTryOnItem(null)}
+            >
+              <div
+                className="relative flex max-h-[calc(100vh-2rem)] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-orange-500/20 bg-background shadow-2xl"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <div className="flex items-center justify-between border-b border-border bg-card/80 px-5 py-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500/15 text-orange-500">
+                      <Sparkles size={20} />
+                    </div>
+                    <div>
+                      <h2 id="try-on-title" className="font-semibold">Try on this item</h2>
+                      <p className="text-sm text-muted-foreground">{tryOnItem.name}</p>
+                    </div>
                   </div>
-                  <Button
-                    className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700"
-                    asChild
+                  <button
+                    type="button"
+                    aria-label="Close try-on window"
+                    className="rounded-full p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    onClick={() => setTryOnItem(null)}
                   >
-                    <Link href="/try-on">
-                      Try On Now
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Link>
-                  </Button>
+                    <X size={20} />
+                  </button>
+                </div>
+                <div className="min-h-0 overflow-y-auto p-4 sm:p-6">
+                  <EnhancedTryOn />
                 </div>
               </div>
             </div>
@@ -504,6 +530,7 @@ interface SearchResultsProps {
   items: StoreItem[];
   selectedItems: StoreItem[];
   onSelectItem: (item: StoreItem) => void;
+  onTryOn: (item: StoreItem) => void;
 }
 
 // Search results component
@@ -511,6 +538,7 @@ function SearchResults({
   items,
   selectedItems,
   onSelectItem,
+  onTryOn,
 }: SearchResultsProps) {
   if (items.length === 0) {
     return (
@@ -566,7 +594,7 @@ function SearchResults({
                       ? 'bg-orange-600 hover:bg-orange-700'
                       : 'bg-orange-500 hover:bg-orange-600'
                   }`}
-                  onClick={() => onSelectItem(item)}
+                  onClick={() => onTryOn(item)}
                 >
                   {selectedItems.some((i) => i.id === item.id) ? (
                     <>
