@@ -11,7 +11,6 @@ import {
   X,
   Heart,
   ArrowRight,
-  Check,
   Sparkles,
 } from 'lucide-react';
 import Navbar from '@/components/navbar';
@@ -30,9 +29,6 @@ export default function SearchPage() {
     filters,
     updateFilters,
     resetFilters,
-    selectedItems,
-    selectItem,
-    unselectItem,
   } = useStore();
   const [isClient, setIsClient] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
@@ -114,18 +110,7 @@ export default function SearchPage() {
     localStorage.removeItem('searchHistory');
   };
 
-  const handleSelectItem = (item: StoreItem) => {
-    if (selectedItems.some((i) => i.id === item.id)) {
-      unselectItem(item.id);
-    } else {
-      selectItem(item);
-    }
-  };
-
   const handleTryOn = (item: StoreItem) => {
-    if (!selectedItems.some((selected) => selected.id === item.id)) {
-      selectItem(item);
-    }
     setTryOnItem(item);
   };
 
@@ -133,7 +118,7 @@ export default function SearchPage() {
     return (
       <div className="min-h-screen bg-background text-foreground">
         <Navbar />
-      <main className="pt-24 pb-32 md:pb-24">
+      <main className="pt-44 pb-24">
           <div className="container mx-auto px-4">
             <h1 className="text-2xl font-bold mb-8">Loading search...</h1>
           </div>
@@ -147,7 +132,7 @@ export default function SearchPage() {
     <div className="min-h-screen bg-background text-foreground">
       <Navbar />
 
-      <main className="pt-24 pb-16">
+      <main className="pt-44 pb-16">
         <div className="container mx-auto px-4">
           <div className="flex items-center mb-8">
             <Link
@@ -418,8 +403,6 @@ export default function SearchPage() {
                 <TabsContent value="all" className="mt-0">
                   <SearchResults
                     items={filteredItems}
-                    selectedItems={selectedItems}
-                    onSelectItem={handleSelectItem}
                     onTryOn={handleTryOn}
                   />
                 </TabsContent>
@@ -432,8 +415,6 @@ export default function SearchPage() {
                         item.category.toLowerCase().includes('shirt') ||
                         item.category.toLowerCase().includes('blouse'),
                     )}
-                    selectedItems={selectedItems}
-                    onSelectItem={handleSelectItem}
                     onTryOn={handleTryOn}
                   />
                 </TabsContent>
@@ -447,8 +428,6 @@ export default function SearchPage() {
                         item.category.toLowerCase().includes('jean') ||
                         item.category.toLowerCase().includes('skirt'),
                     )}
-                    selectedItems={selectedItems}
-                    onSelectItem={handleSelectItem}
                     onTryOn={handleTryOn}
                   />
                 </TabsContent>
@@ -458,8 +437,6 @@ export default function SearchPage() {
                     items={filteredItems.filter((item) =>
                       item.category.toLowerCase().includes('dress'),
                     )}
-                    selectedItems={selectedItems}
-                    onSelectItem={handleSelectItem}
                     onTryOn={handleTryOn}
                   />
                 </TabsContent>
@@ -472,8 +449,6 @@ export default function SearchPage() {
                         item.category.toLowerCase().includes('jacket') ||
                         item.category.toLowerCase().includes('coat'),
                     )}
-                    selectedItems={selectedItems}
-                    onSelectItem={handleSelectItem}
                     onTryOn={handleTryOn}
                   />
                 </TabsContent>
@@ -499,8 +474,8 @@ export default function SearchPage() {
                       <Sparkles size={20} />
                     </div>
                     <div>
-                      <h2 id="try-on-title" className="font-semibold">Try on this item</h2>
-                      <p className="text-sm text-muted-foreground">{tryOnItem.name}</p>
+                      <h2 id="try-on-title" className="font-semibold">Virtual Try-On</h2>
+                      <p className="text-sm text-muted-foreground">See {tryOnItem.name} on you in seconds.</p>
                     </div>
                   </div>
                   <button
@@ -513,6 +488,15 @@ export default function SearchPage() {
                   </button>
                 </div>
                 <div className="min-h-0 overflow-y-auto p-4 sm:p-6">
+                  <div className="mb-4 flex items-center gap-3 rounded-xl border border-orange-500/15 bg-orange-500/5 p-3">
+                    <div className="relative h-16 w-14 overflow-hidden rounded-lg bg-muted">
+                      <Image src={tryOnItem.image || '/placeholder.svg'} alt={tryOnItem.name} fill className="object-cover" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold">{tryOnItem.name}</p>
+                      <p className="text-xs text-muted-foreground">{tryOnItem.brand} · ${tryOnItem.price}</p>
+                    </div>
+                  </div>
                   <EnhancedTryOn />
                 </div>
               </div>
@@ -528,18 +512,11 @@ export default function SearchPage() {
 
 interface SearchResultsProps {
   items: StoreItem[];
-  selectedItems: StoreItem[];
-  onSelectItem: (item: StoreItem) => void;
   onTryOn: (item: StoreItem) => void;
 }
 
 // Search results component
-function SearchResults({
-  items,
-  selectedItems,
-  onSelectItem,
-  onTryOn,
-}: SearchResultsProps) {
+function SearchResults({ items, onTryOn }: SearchResultsProps) {
   if (items.length === 0) {
     return (
       <div className="text-center py-12">
@@ -566,11 +543,7 @@ function SearchResults({
           className="group"
         >
           <div
-            className={`bg-card/50 backdrop-blur-md border ${
-              selectedItems.some((i) => i.id === item.id)
-                ? 'border-orange-500'
-                : 'border-border'
-            } rounded-xl overflow-hidden hover:border-orange-500/50 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-orange-500/10`}
+            className="bg-card/50 backdrop-blur-md border border-border rounded-xl overflow-hidden hover:border-orange-500/50 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-orange-500/10"
           >
             <div className="relative aspect-[3/4]">
               <Image
@@ -580,33 +553,15 @@ function SearchResults({
                 className="object-cover"
               />
 
-              {selectedItems.some((i) => i.id === item.id) && (
-                <div className="absolute top-3 right-3 w-6 h-6 rounded-full bg-orange-500 flex items-center justify-center text-white">
-                  <Check size={14} />
-                </div>
-              )}
-
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center p-3">
                 <Button
                   size="sm"
-                  className={`w-full ${
-                    selectedItems.some((i) => i.id === item.id)
-                      ? 'bg-orange-600 hover:bg-orange-700'
-                      : 'bg-orange-500 hover:bg-orange-600'
-                  }`}
+                  className="w-full bg-orange-500 hover:bg-orange-600"
                   onClick={() => onTryOn(item)}
                 >
-                  {selectedItems.some((i) => i.id === item.id) ? (
-                    <>
-                      <Check className="mr-2 h-4 w-4" />
-                      Selected
-                    </>
-                  ) : (
-                    <>
-                      Try On
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </>
-                  )}
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Try On
+                  <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </div>
             </div>
