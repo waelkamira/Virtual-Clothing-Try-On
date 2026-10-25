@@ -1,33 +1,20 @@
-// Define the types of views we can generate
-export type ViewType = "front" | "back" | "side"
+export type ViewType = "front"
 
-// Interface for the result of image processing
 export interface ProcessedImage {
   url: string
   viewType: ViewType
 }
 
-// Interface for clothing item to try on
 export interface ClothingItem {
   id: string
   image: string
   category: string
+  name?: string
   color: string
   size: string
 }
 
-/**
- * Service for processing images and generating virtual try-on results
- */
 export class ImageProcessingService {
-  /**
-   * Merges a user photo with a clothing item to create a virtual try-on image
-   *
-   * @param userPhotoUrl URL of the user's photo
-   * @param clothingItem Clothing item to try on
-   * @param viewType Type of view to generate (front, back, side)
-   * @returns Promise resolving to the URL of the processed image
-   */
   async mergeUserPhotoWithClothing(
     userPhotoUrl: string,
     clothingItem: ClothingItem,
@@ -40,91 +27,73 @@ export class ImageProcessingService {
         userPhotoUrl,
         itemImageUrl: clothingItem.image,
         category: clothingItem.category,
+        itemDescription: [clothingItem.color, clothingItem.name, clothingItem.category]
+          .filter(Boolean)
+          .join(" "),
         viewType,
       }),
     })
-    if (!response.ok) throw new Error("Try-on generation failed")
-    const data = await response.json()
-    return data.url as string
+    const data: unknown = await response.json()
+    if (
+      !response.ok ||
+      typeof data !== "object" ||
+      data === null ||
+      !("url" in data) ||
+      typeof data.url !== "string"
+    ) {
+      const message =
+        typeof data === "object" && data !== null && "error" in data && typeof data.error === "string"
+          ? data.error
+          : "Try-on generation failed"
+      throw new Error(message)
+    }
+    return data.url
   }
 
-  /**
-   * Generates all views (front, back, side) for a virtual try-on
-   *
-   * @param userPhotoUrl URL of the user's photo
-   * @param clothingItem Clothing item to try on
-   * @returns Promise resolving to an array of processed images
-   */
+  async generateView(
+    userPhotoUrl: string,
+    clothingItem: ClothingItem,
+    viewType: ViewType,
+  ): Promise<ProcessedImage> {
+    const url = await this.mergeUserPhotoWithClothing(userPhotoUrl, clothingItem, viewType)
+    return { url, viewType }
+  }
+
   async generateAllViews(userPhotoUrl: string, clothingItem: ClothingItem): Promise<ProcessedImage[]> {
-    // Generate all three views in parallel
-    const [frontView, backView, sideView] = await Promise.all([
-      this.mergeUserPhotoWithClothing(userPhotoUrl, clothingItem, "front"),
-      this.mergeUserPhotoWithClothing(userPhotoUrl, clothingItem, "back"),
-      this.mergeUserPhotoWithClothing(userPhotoUrl, clothingItem, "side"),
-    ])
-
-    return [
-      { url: frontView, viewType: "front" },
-      { url: backView, viewType: "back" },
-      { url: sideView, viewType: "side" },
-    ]
+    const front = await this.generateView(userPhotoUrl, clothingItem, "front")
+    return [front]
   }
 
-  /**
-   * Analyzes a user photo to extract body measurements
-   *
-   * @param userPhotoUrl URL of the user's photo
-   * @returns Promise resolving to an object containing body measurements
-   */
   async extractBodyMeasurements(userPhotoUrl: string): Promise<Record<string, number>> {
-    // In a real implementation, this would use computer vision to analyze the photo
-    // For demonstration purposes, we'll return mock measurements
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
+    await new Promise((resolve) => setTimeout(resolve, 400))
     return {
-      height: 175, // cm
-      shoulder: 45, // cm
-      chest: 95, // cm
-      waist: 80, // cm
-      hip: 95, // cm
-      inseam: 80, // cm
+      height: 175,
+      shoulder: 45,
+      chest: 95,
+      waist: 80,
+      hip: 95,
+      inseam: 80,
     }
   }
 
-  /**
-   * Recommends clothing sizes based on body measurements
-   *
-   * @param measurements Body measurements
-   * @param category Clothing category
-   * @returns Recommended size
-   */
   recommendSize(measurements: Record<string, number>, category: string): string {
-    // In a real implementation, this would use a sizing algorithm
-    // For demonstration purposes, we'll return a mock recommendation
-
-    // Simple size mapping based on chest measurement for tops
-    if (category.toLowerCase().includes("top") || category.toLowerCase().includes("shirt")) {
+    const value = category.toLowerCase()
+    if (value.includes("top") || value.includes("shirt") || value.includes("dress") || value.includes("outer")) {
       const chest = measurements.chest
       if (chest < 90) return "S"
       if (chest < 100) return "M"
       if (chest < 110) return "L"
       return "XL"
     }
-
-    // Simple size mapping based on waist measurement for bottoms
-    if (category.toLowerCase().includes("bottom") || category.toLowerCase().includes("pant")) {
+    if (value.includes("bottom") || value.includes("pant") || value.includes("jean") || value.includes("short")) {
       const waist = measurements.waist
       if (waist < 75) return "S"
       if (waist < 85) return "M"
       if (waist < 95) return "L"
       return "XL"
     }
-
-    // Default size
     return "M"
   }
 }
 
-// Create and export a singleton instance
 export const imageProcessor = new ImageProcessingService()
-

@@ -14,9 +14,9 @@ export default function SearchBar() {
   // Popular search suggestions
   const suggestions = ["Summer dresses", "Men's shirts", "Casual shoes", "Jeans", "Jackets"]
 
-  const handleSearch = () => {
-    if (searchQuery.trim()) {
-      router.push(`/search?q=${encodeURIComponent(searchQuery)}`)
+  const handleSearch = (query = searchQuery) => {
+    if (query.trim()) {
+      router.push(`/search?q=${encodeURIComponent(query)}`)
     }
   }
 
@@ -47,7 +47,7 @@ export default function SearchBar() {
 
           <Button
             className="absolute right-1 top-1/2 transform -translate-y-1/2 bg-orange-500 hover:bg-orange-600 h-10"
-            onClick={handleSearch}
+            onClick={() => handleSearch()}
           >
             Search
             <ArrowRight size={16} className="ml-2" />
@@ -62,7 +62,7 @@ export default function SearchBar() {
                 className="px-3 py-1 bg-background/50 border border-border rounded-full text-sm hover:border-orange-500/50 hover:bg-orange-500/10 transition-colors"
                 onClick={() => {
                   setSearchQuery(suggestion)
-                  handleSearch()
+                  handleSearch(suggestion)
                 }}
               >
                 {suggestion}
@@ -84,4 +84,3 @@ export default function SearchBar() {
     </div>
   )
 }
-

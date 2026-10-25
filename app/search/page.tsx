@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
   ArrowLeft,
@@ -14,14 +15,13 @@ import {
   Check,
   Sparkles,
 } from 'lucide-react';
-import Navbar from '@/components/navbar';
 import Footer from '@/components/footer';
 import { Button } from '@/components/ui/button';
 import { useStore, type StoreItem } from '@/contexts/store-context';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import EnhancedTryOn from '@/components/enhanced-try-on';
 
-export default function SearchPage() {
+function SearchPage() {
   const {
     items,
     filteredItems,
@@ -33,7 +33,10 @@ export default function SearchPage() {
     selectedItems,
     selectItem,
     unselectItem,
+    toggleFavorite,
+    isFavorite,
   } = useStore();
+  const searchParams = useSearchParams();
   const [isClient, setIsClient] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
@@ -45,12 +48,15 @@ export default function SearchPage() {
   useEffect(() => {
     setIsClient(true);
 
-    // Load search history from localStorage
     const history = localStorage.getItem('searchHistory');
     if (history) {
       setSearchHistory(JSON.parse(history));
     }
-  }, []);
+    const query = searchParams.get('q');
+    if (query) {
+      setSearchQuery(query);
+    }
+  }, [searchParams, setSearchQuery]);
 
   // Update suggestions based on search query
   useEffect(() => {
@@ -132,7 +138,6 @@ export default function SearchPage() {
   if (!isClient) {
     return (
       <div className="min-h-screen bg-background text-foreground">
-        <Navbar />
       <main className="pt-24 pb-32 md:pb-24">
           <div className="container mx-auto px-4">
             <h1 className="text-2xl font-bold mb-8">Loading search...</h1>
@@ -145,8 +150,6 @@ export default function SearchPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <Navbar />
-
       <main className="pt-24 pb-16">
         <div className="container mx-auto px-4">
           <div className="flex items-center mb-8">
@@ -523,6 +526,14 @@ export default function SearchPage() {
 
       <Footer />
     </div>
+  );
+}
+
+export default function SearchPageRoute() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-background" aria-label="Loading search" />}>
+      <SearchPage />
+    </Suspense>
   );
 }
 

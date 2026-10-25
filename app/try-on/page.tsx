@@ -5,16 +5,17 @@ import Link from "next/link"
 import Image from "next/image"
 import { motion } from "framer-motion"
 import { ArrowLeft, ShoppingBag, Share2, Heart } from "lucide-react"
-import Navbar from "@/components/navbar"
 import EnhancedTryOn from "@/components/enhanced-try-on"
 import Footer from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { useStore } from "@/contexts/store-context"
+import { useUser } from "@/contexts/user-context"
 import { useToast } from "@/components/ui/use-toast"
 
 export default function TryOnPage() {
   const [uploadedImage, setUploadedImage] = useState<string | null>(null)
-  const { selectedItems, trialCount } = useStore()
+  const { selectedItems, trialCount, items } = useStore()
+  const { saveOutfit } = useUser()
   const { toast } = useToast()
   const [isClient, setIsClient] = useState(false)
 
@@ -37,22 +38,18 @@ export default function TryOnPage() {
       return
     }
 
-    // In a real app, this would open a share dialog
+    if (navigator.share) {
+      void navigator.share({ title: "My VirtualFit look", url: window.location.href })
+      return
+    }
+    void navigator.clipboard.writeText(window.location.href)
     toast({
-      title: "Sharing",
-      description: "Opening share dialog...",
+      title: "Link copied",
+      description: "Share your virtual try-on with friends.",
     })
-
-    // For demo purposes, we'll just simulate a successful share
-    setTimeout(() => {
-      toast({
-        title: "Shared successfully",
-        description: "Your virtual try-on image has been shared.",
-      })
-    }, 1500)
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!uploadedImage) {
       toast({
         title: "No image to save",
@@ -62,6 +59,11 @@ export default function TryOnPage() {
       return
     }
 
+    await saveOutfit({
+      name: selectedItems[0] ? `${selectedItems[0].name} look` : "Saved look",
+      image: uploadedImage,
+      items: selectedItems.map((item) => item.id),
+    })
     toast({
       title: "Outfit saved",
       description: "Your outfit has been saved to your profile.",
@@ -71,7 +73,6 @@ export default function TryOnPage() {
   if (!isClient) {
     return (
       <div className="min-h-screen bg-background text-foreground">
-        <Navbar />
         <main className="pt-24 pb-16">
           <div className="container mx-auto px-4">
             <h1 className="text-2xl font-bold mb-8">Loading try-on interface...</h1>
@@ -84,8 +85,6 @@ export default function TryOnPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <Navbar />
-
       <main className="pt-24 pb-16">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between mb-8">
@@ -231,22 +230,20 @@ export default function TryOnPage() {
                   <h2 className="text-xl font-bold text-foreground mb-4">Recommended For You</h2>
 
                   <div className="grid grid-cols-3 gap-3">
-                    {[1, 2, 3].map((i) => (
-                      <div key={i} className="group relative">
+                    {items.slice(0, 3).map((item) => (
+                      <div key={item.id} className="group relative">
                         <div className="aspect-square bg-background/50 rounded-md overflow-hidden border border-border">
                           <Image
-                            src={`/placeholder.svg?height=100&width=100&text=Item${i}`}
-                            alt={`Recommended item ${i}`}
+                            src={item.image || "/placeholder.svg"}
+                            alt={item.name}
                             width={100}
                             height={100}
                             className="w-full h-full object-cover"
                           />
-
-                          {/* Store logo */}
                           <div className="absolute bottom-1 right-1 bg-white/90 dark:bg-black/70 backdrop-blur-sm rounded-md p-0.5">
                             <Image
-                              src={`/stores/${["amazon", "asos", "zara"][i - 1]}.svg`}
-                              alt="Store"
+                              src={item.storeLogo || "/placeholder.svg"}
+                              alt={item.brand}
                               width={16}
                               height={8}
                               className="object-contain"
@@ -258,8 +255,9 @@ export default function TryOnPage() {
                             size="sm"
                             variant="default"
                             className="w-full max-w-[80%] bg-orange-500 hover:bg-orange-600"
+                            asChild
                           >
-                            Try On
+                            <Link href="/catalog">Try On</Link>
                           </Button>
                         </div>
                       </div>

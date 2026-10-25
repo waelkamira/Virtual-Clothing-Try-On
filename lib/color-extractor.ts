@@ -1,11 +1,9 @@
-import { getColor, getPalette } from "colorthief";
+import { getColor, getPalette } from "colorthief"
 
-function colorToRgb(color: unknown): [number, number, number] | null {
-  if (!color || typeof color !== "object") return null
-
-  const value = color as { rgb?: () => [number, number, number]; toRgb?: () => [number, number, number] }
-  const rgb = value.rgb?.() ?? value.toRgb?.()
-  return Array.isArray(rgb) && rgb.length >= 3 ? [rgb[0], rgb[1], rgb[2]] : null
+function colorToRgb(color: Awaited<ReturnType<typeof getColor>>): [number, number, number] | null {
+  if (!color) return null
+  const rgb = color.rgb()
+  return [rgb.r, rgb.g, rgb.b]
 }
 
 export interface ExtractedColors {
@@ -127,4 +125,3 @@ function isLightColor(hex: string): boolean {
 
   return brightness > 0.5
 }
-

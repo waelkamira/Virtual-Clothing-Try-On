@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from 'react';
 import { extractProductsFromUrl } from '@/lib/store-service';
+import { testProducts } from '@/lib/test-products';
 
 // Define types for our store items
 export interface StoreItem {
@@ -44,6 +45,8 @@ interface StoreContextType {
   error: string | null;
   trialCount: number;
   selectedItems: StoreItem[];
+  favoriteItems: StoreItem[];
+  userPhotoUrl: string | null;
   searchQuery: string;
   webViewUrl: string | null;
   filters: {
@@ -63,10 +66,57 @@ interface StoreContextType {
   resetFilters: () => void;
   selectItem: (item: StoreItem) => void;
   unselectItem: (itemId: string) => void;
+  clearSelectedItems: () => void;
+  toggleFavorite: (item: StoreItem) => void;
+  isFavorite: (itemId: string) => boolean;
+  setUserPhotoUrl: (url: string | null) => void;
   decrementTrialCount: () => void;
   openInWebView: (url: string) => void;
   closeWebView: () => void;
   extractProductsFromWebView: () => Promise<void>;
+}
+
+const STORAGE_KEYS = {
+  selected: 'vss-selected-items',
+  favorites: 'vss-favorites',
+  trial: 'vss-trial-count',
+  photo: 'vss-user-photo',
+}
+
+const defaultFilters = {
+  priceRange: [0, 400] as [number, number],
+  colors: [] as string[],
+  brands: [] as string[],
+  sizes: [] as string[],
+  materials: [] as string[],
+  categories: [] as string[],
+}
+
+const CATEGORY_ALIASES: Record<string, string[]> = {
+  Tops: ['tops', 't-shirts', 't-shirt', 'shirts', 'sweatshirts', 'knitwear', 'activewear'],
+  Bottoms: ['bottoms', 'pants', 'jeans', 'shorts', 'skirts'],
+  Dresses: ['dresses'],
+  Outerwear: ['outerwear'],
+  Shoes: ['shoes', 'footwear'],
+  Footwear: ['shoes', 'footwear'],
+  Accessories: ['accessories'],
+}
+
+function matchesCategory(itemCategory: string, filterCategory: string) {
+  const item = itemCategory.toLowerCase()
+  const filter = filterCategory.toLowerCase()
+  if (item === filter || item.includes(filter) || filter.includes(item)) return true
+  const aliases = CATEGORY_ALIASES[filterCategory] || CATEGORY_ALIASES[itemCategory] || []
+  return aliases.includes(item) || aliases.includes(filter)
+}
+
+function readJson<T>(key: string, fallback: T): T {
+  try {
+    const raw = localStorage.getItem(key)
+    return raw ? (JSON.parse(raw) as T) : fallback
+  } catch {
+    return fallback
+  }
 }
 
 // Define global store data
@@ -343,52 +393,43 @@ const globalStores: Store[] = [
   },
 ];
 
-// Mock data for initial items
-const mockItems: StoreItem[] = Array.from({ length: 30 }, (_, i) => {
-  const store = globalStores[Math.floor(Math.random() * globalStores.length)];
-  return {
-    id: `item-${i}`,
-    name: `Product ${i + 1}`,
-    price: Math.floor(Math.random() * 100) + 20,
-    image: `/placeholder.svg?height=300&width=200&text=Product${i + 1}`,
-    brand: store.name,
-    category: ['Tops', 'Bottoms', 'Dresses', 'Outerwear', 'Shoes'][
-      Math.floor(Math.random() * 5)
-    ],
-    color: ['Red', 'Blue', 'Green', 'Black', 'White'][
-      Math.floor(Math.random() * 5)
-    ],
-    size: ['XS', 'S', 'M', 'L', 'XL'][Math.floor(Math.random() * 5)],
-    material: ['Cotton', 'Polyester', 'Wool', 'Leather', 'Denim'][
-      Math.floor(Math.random() * 5)
-    ],
-    storeId: store.id,
-    storeUrl: store.url,
-    storeLogo: store.logo,
-  };
-});
+const catalogItems: StoreItem[] = testProducts;
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [stores] = useState<Store[]>(globalStores);
   const [selectedStore, setSelectedStore] = useState<Store | null>(null);
-  const [items, setItems] = useState<StoreItem[]>(mockItems);
-  const [filteredItems, setFilteredItems] = useState<StoreItem[]>(mockItems);
+  const [items, setItems] = useState<StoreItem[]>(catalogItems);
+  const [filteredItems, setFilteredItems] = useState<StoreItem[]>(catalogItems);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [trialCount, setTrialCount] = useState<number>(5);
   const [selectedItems, setSelectedItems] = useState<StoreItem[]>([]);
+  const [favoriteItems, setFavoriteItems] = useState<StoreItem[]>([]);
+  const [userPhotoUrl, setUserPhotoUrlState] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [webViewUrl, setWebViewUrl] = useState<string | null>(null);
-  const [filters, setFilters] = useState({
-    priceRange: [0, 200] as [number, number],
-    colors: [] as string[],
-    brands: [] as string[],
-    sizes: [] as string[],
-    materials: [] as string[],
-    categories: [] as string[],
-  });
+  const [filters, setFilters] = useState(defaultFilters);
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    setSelectedItems(readJson<StoreItem[]>(STORAGE_KEYS.selected, []));
+    setFavoriteItems(readJson<StoreItem[]>(STORAGE_KEYS.favorites, []));
+    const savedTrial = localStorage.getItem(STORAGE_KEYS.trial);
+    if (savedTrial) setTrialCount(Number(savedTrial) || 5);
+    setUserPhotoUrlState(sessionStorage.getItem(STORAGE_KEYS.photo));
+    setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    localStorage.setItem(STORAGE_KEYS.selected, JSON.stringify(selectedItems));
+    localStorage.setItem(STORAGE_KEYS.favorites, JSON.stringify(favoriteItems));
+    localStorage.setItem(STORAGE_KEYS.trial, String(trialCount));
+    if (userPhotoUrl) sessionStorage.setItem(STORAGE_KEYS.photo, userPhotoUrl);
+    else sessionStorage.removeItem(STORAGE_KEYS.photo);
+  }, [hydrated, selectedItems, favoriteItems, trialCount, userPhotoUrl]);
 
   // Apply filters and search whenever relevant state changes
   useEffect(() => {
@@ -411,7 +452,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
 
     // Apply filters
-    if (filters.priceRange[0] > 0 || filters.priceRange[1] < 200) {
+    if (filters.priceRange[0] > 0 || filters.priceRange[1] < 400) {
       result = result.filter(
         (item) =>
           item.price >= filters.priceRange[0] &&
@@ -420,7 +461,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
 
     if (filters.colors.length > 0) {
-      result = result.filter((item) => filters.colors.includes(item.color));
+      result = result.filter((item) =>
+        filters.colors.some((color) =>
+          item.color.toLowerCase().includes(color.toLowerCase()),
+        ),
+      );
     }
 
     if (filters.brands.length > 0) {
@@ -439,7 +484,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
     if (filters.categories.length > 0) {
       result = result.filter((item) =>
-        filters.categories.includes(item.category),
+        filters.categories.some((category) => matchesCategory(item.category, category)),
       );
     }
 
@@ -520,16 +565,27 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   };
 
   const resetFilters = () => {
-    setFilters({
-      priceRange: [0, 200],
-      colors: [],
-      brands: [],
-      sizes: [],
-      materials: [],
-      categories: [],
-    });
+    setFilters(defaultFilters);
     setSearchQuery('');
     setSelectedStore(null);
+  };
+
+  const clearSelectedItems = () => {
+    setSelectedItems([]);
+  };
+
+  const toggleFavorite = (item: StoreItem) => {
+    setFavoriteItems((prev) =>
+      prev.some((favorite) => favorite.id === item.id)
+        ? prev.filter((favorite) => favorite.id !== item.id)
+        : [...prev, item],
+    );
+  };
+
+  const isFavorite = (itemId: string) => favoriteItems.some((item) => item.id === itemId);
+
+  const setUserPhotoUrl = (url: string | null) => {
+    setUserPhotoUrlState(url);
   };
 
   const selectItem = (item: StoreItem) => {
@@ -592,6 +648,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         error,
         trialCount,
         selectedItems,
+        favoriteItems,
+        userPhotoUrl,
         searchQuery,
         webViewUrl,
         filters,
@@ -602,6 +660,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         resetFilters,
         selectItem,
         unselectItem,
+        clearSelectedItems,
+        toggleFavorite,
+        isFavorite,
+        setUserPhotoUrl,
         decrementTrialCount,
         openInWebView,
         closeWebView,

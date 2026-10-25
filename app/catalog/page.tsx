@@ -5,7 +5,6 @@ import Image from "next/image"
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { ArrowRight, Heart, ShoppingBag, Check, X } from "lucide-react"
-import Navbar from "@/components/navbar"
 import Footer from "@/components/footer"
 import StoreFilter from "@/components/store-filter"
 import { Button } from "@/components/ui/button"
@@ -14,7 +13,7 @@ import { useUser } from "@/contexts/user-context"
 import { useToast } from "@/components/ui/use-toast"
 
 export default function CatalogPage() {
-  const { filteredItems, selectedItems, selectItem, unselectItem, trialCount } = useStore()
+  const { filteredItems, selectedItems, selectItem, unselectItem, trialCount, toggleFavorite, isFavorite, resetFilters } = useStore()
   const { user } = useUser()
   const { toast } = useToast()
   const [isClient, setIsClient] = useState(false)
@@ -47,7 +46,6 @@ export default function CatalogPage() {
   if (!isClient) {
     return (
       <div className="min-h-screen bg-background text-foreground">
-        <Navbar />
         <main className="pt-24 pb-16">
           <div className="container mx-auto px-4">
             <h1 className="text-2xl font-bold mb-8">Loading catalog...</h1>
@@ -60,8 +58,6 @@ export default function CatalogPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <Navbar />
-
       <main className="pt-24 pb-16">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between mb-8">
@@ -198,8 +194,12 @@ export default function CatalogPage() {
                           ))}
                         </div>
 
-                        <button className="p-1 rounded-full text-muted-foreground hover:text-orange-500 transition-colors">
-                          <Heart size={16} />
+                        <button
+                          className={`p-1 rounded-full transition-colors ${isFavorite(item.id) ? "text-orange-500" : "text-muted-foreground hover:text-orange-500"}`}
+                          onClick={() => toggleFavorite(item)}
+                          aria-label={isFavorite(item.id) ? "Remove from favorites" : "Add to favorites"}
+                        >
+                          <Heart size={16} className={isFavorite(item.id) ? "fill-current" : ""} />
                         </button>
                       </div>
                     </div>
@@ -220,10 +220,7 @@ export default function CatalogPage() {
               <Button
                 variant="outline"
                 className="mt-4 border-orange-500/30 hover:bg-orange-500/10 hover:text-orange-500"
-                onClick={() => {
-                  // Reset filters
-                  window.location.reload()
-                }}
+                onClick={resetFilters}
               >
                 View All Items
               </Button>

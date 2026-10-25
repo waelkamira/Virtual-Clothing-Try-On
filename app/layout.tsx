@@ -6,13 +6,13 @@ import { StoreProvider } from "@/contexts/store-context"
 import { UserProvider } from "@/contexts/user-context"
 import { Toaster } from "@/components/ui/toaster"
 import GlassNavbar from "@/components/glass-navbar"
+import Navbar from "@/components/navbar"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata = {
-  title: "Virtual Clothing Try-On",
+  title: "VirtualFit — Virtual Clothing Try-On",
   description: "Try on clothes virtually before you buy them",
-    generator: 'v0.dev'
 }
 
 export default function RootLayout({
@@ -28,11 +28,12 @@ export default function RootLayout({
         <div className="fixed inset-0 -z-10 bg-[url('/grid-pattern.svg')] bg-center opacity-10"></div>
         <div className="fixed inset-0 -z-10 bg-gradient-radial from-transparent to-amber-500/20 dark:to-amber-900/30"></div>
 
-        <ThemeProvider attribute="class" defaultTheme="light">
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
           <StoreProvider>
             <UserProvider>
               <GlassNavbar />
-              <main className="pt-20 pb-16 px-4 sm:px-6 md:px-8 max-w-7xl mx-auto">{children}</main>
+              {children}
+              <Navbar />
               <Toaster />
             </UserProvider>
           </StoreProvider>
@@ -41,7 +42,3 @@ export default function RootLayout({
     </html>
   )
 }
-
-
-
-import './globals.css'

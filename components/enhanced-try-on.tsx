@@ -2,14 +2,15 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
-import { Camera, Share2, Heart, Download, X, ChevronLeft, ChevronRight } from "lucide-react"
+import { Camera, Share2, Heart, Download, Bookmark, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
 import { imageProcessor, type ProcessedImage, type ViewType } from "@/lib/image-processing"
 import { useStore } from "@/contexts/store-context"
+import { useUser } from "@/contexts/user-context"
 
 interface EnhancedTryOnProps {
   onPhotoCapture?: (imageUrl: string | null) => void
@@ -26,8 +27,16 @@ export default function EnhancedTryOn({ onPhotoCapture }: EnhancedTryOnProps) {
   const [bodyMeasurements, setBodyMeasurements] = useState<Record<string, number> | null>(null)
   const [recommendedSizes, setRecommendedSizes] = useState<Record<string, string>>({})
 
-  const { selectedItems } = useStore()
+  const { selectedItems, userPhotoUrl, setUserPhotoUrl, toggleFavorite, isFavorite } = useStore()
+  const { saveOutfit } = useUser()
   const { toast } = useToast()
+
+  useEffect(() => {
+    if (!uploadedImage && userPhotoUrl) {
+      setUploadedImage(userPhotoUrl)
+      onPhotoCapture?.(userPhotoUrl)
+    }
+  }, [uploadedImage, userPhotoUrl, onPhotoCapture])
 
   // Handle file upload
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -41,6 +50,7 @@ export default function EnhancedTryOn({ onPhotoCapture }: EnhancedTryOnProps) {
         if (!response.ok) throw new Error("Upload failed")
         const { url: imageUrl } = await response.json()
         setUploadedImage(imageUrl)
+        setUserPhotoUrl(imageUrl)
         setIsUploading(false)
         if (onPhotoCapture) onPhotoCapture(imageUrl)
 
@@ -91,18 +101,19 @@ export default function EnhancedTryOn({ onPhotoCapture }: EnhancedTryOnProps) {
     }, 100)
 
     try {
-      // Generate all views for the selected item
+      // Generate the front view for the selected item
       const item = selectedItems[index]
-      const results = await imageProcessor.generateAllViews(uploadedImage, {
+      const front = await imageProcessor.generateView(uploadedImage, {
         id: item.id,
         image: item.image,
         category: item.category,
+        name: item.name,
         color: item.color,
         size: item.size,
-      })
+      }, "front")
 
-      setProcessedImages(results)
-      setActiveView("front") // Reset to front view
+      setProcessedImages([front])
+      setActiveView("front")
 
       // Update progress to 100%
       clearInterval(progressInterval)
@@ -110,32 +121,18 @@ export default function EnhancedTryOn({ onPhotoCapture }: EnhancedTryOnProps) {
 
       toast({
         title: "Try-on complete",
-        description: "Your virtual try-on is ready! Use the view controls to see different angles.",
+        description: "Your front-view virtual try-on is ready.",
       })
     } catch (error) {
       toast({
         title: "Processing failed",
-        description: "There was an error processing your try-on. Please try again.",
+        description: error instanceof Error ? error.message : "There was an error processing your try-on.",
         variant: "destructive",
       })
     } finally {
       setTimeout(() => {
         setIsProcessing(false)
       }, 500) // Short delay to ensure progress bar reaches 100%
-    }
-  }
-
-  // Navigate between views
-  const navigateView = (direction: "prev" | "next") => {
-    const views: ViewType[] = ["front", "side", "back"]
-    const currentIndex = views.indexOf(activeView)
-
-    if (direction === "next") {
-      const nextIndex = (currentIndex + 1) % views.length
-      setActiveView(views[nextIndex])
-    } else {
-      const prevIndex = (currentIndex - 1 + views.length) % views.length
-      setActiveView(views[prevIndex])
     }
   }
 
@@ -159,44 +156,54 @@ export default function EnhancedTryOn({ onPhotoCapture }: EnhancedTryOnProps) {
     })
   }
 
-  // Share the current view
-  const shareImage = () => {
-    if (processedImages.length === 0) return
-
-    // In a real app, this would use the Web Share API or a custom sharing dialog
-    toast({
-      title: "Sharing",
-      description: "Opening share dialog...",
+  const saveCurrentOutfit = async () => {
+    const currentImage = processedImages.find((img) => img.viewType === activeView) || processedImages[0]
+    if (!currentImage) return
+    const item = selectedItemIndex !== null ? selectedItems[selectedItemIndex] : selectedItems[0]
+    await saveOutfit({
+      name: item ? `${item.name} look` : "Saved look",
+      image: currentImage.url,
+      items: selectedItems.map((selected) => selected.id),
     })
+    toast({
+      title: "Outfit saved",
+      description: "You can find it on your profile.",
+    })
+  }
 
-    // For demo purposes, we'll just simulate a successful share
-    setTimeout(() => {
-      toast({
-        title: "Shared successfully",
-        description: "Your virtual try-on image has been shared.",
-      })
-    }, 1500)
+  const shareImage = async () => {
+    const currentImage = processedImages.find((img) => img.viewType === activeView)
+    if (!currentImage) return
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: "My VirtualFit look", url: window.location.href })
+      } else {
+        await navigator.clipboard.writeText(window.location.href)
+      }
+      toast({ title: "Shared", description: "Your try-on link is ready to send." })
+    } catch {
+      toast({ title: "Share canceled" })
+    }
   }
 
   return (
     <div className="bg-card/50 backdrop-blur-md border border-border rounded-xl overflow-hidden">
-      {/* Header with view selector */}
+      <p className="border-b border-border px-4 py-3 text-xs text-muted-foreground">
+        Try-on sends your photo and the garment image to the{" "}
+        <a
+          href="https://huggingface.co/spaces/yisol/IDM-VTON"
+          target="_blank"
+          rel="noreferrer"
+          className="underline underline-offset-2"
+        >
+          free public IDM-VTON demo
+        </a>
+        . It may be queued or unavailable, and its model is licensed for non-commercial use only.
+      </p>
       {processedImages.length > 0 && (
         <div className="p-4 border-b border-border flex justify-between items-center">
           <h3 className="font-medium">Virtual Try-On</h3>
-          <div className="flex bg-background/50 border border-border rounded-lg p-1">
-            {(["front", "side", "back"] as ViewType[]).map((view) => (
-              <button
-                key={view}
-                onClick={() => setActiveView(view)}
-                className={`px-3 py-1 text-xs font-medium rounded ${
-                  activeView === view ? "bg-orange-500 text-white" : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {view.charAt(0).toUpperCase() + view.slice(1)}
-              </button>
-            ))}
-          </div>
+          <span className="text-xs text-muted-foreground">Front view only</span>
         </div>
       )}
 
@@ -235,33 +242,6 @@ export default function EnhancedTryOn({ onPhotoCapture }: EnhancedTryOnProps) {
                   className="object-contain"
                 />
 
-                {/* Navigation arrows */}
-                <button
-                  onClick={() => navigateView("prev")}
-                  className="absolute left-4 top-1/2 transform -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/70 transition-colors"
-                >
-                  <ChevronLeft size={20} />
-                </button>
-                <button
-                  onClick={() => navigateView("next")}
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/70 transition-colors"
-                >
-                  <ChevronRight size={20} />
-                </button>
-
-                {/* View indicator */}
-                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2">
-                  {(["front", "side", "back"] as ViewType[]).map((view) => (
-                    <button
-                      key={view}
-                      onClick={() => setActiveView(view)}
-                      className={`w-2 h-2 rounded-full ${
-                        activeView === view ? "bg-orange-500" : "bg-white/50 hover:bg-white/80"
-                      }`}
-                    ></button>
-                  ))}
-                </div>
-
                 {/* Store logo */}
                 {selectedItemIndex !== null && (
                   <div className="absolute bottom-4 right-4 bg-white/90 dark:bg-black/70 backdrop-blur-sm rounded-lg p-1 shadow-lg">
@@ -288,6 +268,7 @@ export default function EnhancedTryOn({ onPhotoCapture }: EnhancedTryOnProps) {
             <button
               onClick={() => {
                 setUploadedImage(null)
+                setUserPhotoUrl(null)
                 setProcessedImages([])
                 setSelectedItemIndex(null)
                 if (onPhotoCapture) onPhotoCapture(null)
@@ -315,7 +296,7 @@ export default function EnhancedTryOn({ onPhotoCapture }: EnhancedTryOnProps) {
               <Camera className="mr-2 h-4 w-4" />
               Upload Photo
             </Button>
-            <input id="photo-upload" type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+              <input id="photo-upload" type="file" accept="image/*" capture="user" className="hidden" onChange={handleFileChange} />
           </div>
         )}
 
@@ -394,13 +375,25 @@ export default function EnhancedTryOn({ onPhotoCapture }: EnhancedTryOnProps) {
               size="icon"
               className="rounded-md bg-orange-500/10 text-orange-500 hover:bg-orange-500/20 border-orange-500/30"
               onClick={() => {
+                const item = selectedItemIndex !== null ? selectedItems[selectedItemIndex] : selectedItems[0]
+                if (!item) return
+                toggleFavorite(item)
                 toast({
-                  title: "Added to favorites",
-                  description: "This outfit has been added to your favorites.",
+                  title: isFavorite(item.id) ? "Removed from favorites" : "Added to favorites",
+                  description: item.name,
                 })
               }}
             >
               <Heart size={18} />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="rounded-md bg-orange-500/10 text-orange-500 hover:bg-orange-500/20 border-orange-500/30"
+              onClick={() => void saveCurrentOutfit()}
+              aria-label="Save outfit"
+            >
+              <Bookmark size={18} />
             </Button>
             <Button
               variant="outline"
@@ -430,4 +423,3 @@ export default function EnhancedTryOn({ onPhotoCapture }: EnhancedTryOnProps) {
     </div>
   )
 }
-

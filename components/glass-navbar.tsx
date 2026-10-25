@@ -3,18 +3,21 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { motion } from "framer-motion"
-import { Home, ShoppingBag, User, Sun, Moon } from "lucide-react"
+import { Home, Search, ShoppingBag, Camera, Heart, User, Sun, Moon } from "lucide-react"
 import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
 
 export default function GlassNavbar() {
   const pathname = usePathname()
-  const { theme, setTheme } = useTheme()
+  const { resolvedTheme, setTheme } = useTheme()
 
   const navItems = [
     { href: "/", icon: Home, label: "Home" },
-    { href: "/stores", icon: ShoppingBag, label: "Stores" },
-    { href: "/upload", icon: User, label: "Try On" },
+    { href: "/search", icon: Search, label: "Search" },
+    { href: "/catalog", icon: ShoppingBag, label: "Catalog" },
+    { href: "/try-on", icon: Camera, label: "Try On" },
+    { href: "/favorites", icon: Heart, label: "Favorites" },
+    { href: "/profile", icon: User, label: "Profile" },
   ]
 
   return (
@@ -30,10 +33,10 @@ export default function GlassNavbar() {
 
             <nav className="flex items-center space-x-1">
               {navItems.map((item) => {
-                const isActive = pathname === item.href
+                const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href)
 
                 return (
-                  <Link key={item.href} href={item.href}>
+                  <Link key={item.href} href={item.href} aria-label={item.label}>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -51,6 +54,7 @@ export default function GlassNavbar() {
                         />
                       )}
                       <item.icon className="h-4 w-4" />
+                      <span className="hidden md:inline ml-1.5">{item.label}</span>
                     </Button>
                   </Link>
                 )
@@ -59,10 +63,11 @@ export default function GlassNavbar() {
               <Button
                 variant="ghost"
                 size="sm"
+                aria-label="Toggle theme"
                 className="rounded-full px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200"
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
               >
-                {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                {resolvedTheme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               </Button>
             </nav>
           </div>
@@ -71,4 +76,3 @@ export default function GlassNavbar() {
     </header>
   )
 }
-

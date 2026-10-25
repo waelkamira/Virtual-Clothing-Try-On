@@ -1,4 +1,3 @@
-import Navbar from "@/components/navbar"
 import HeroSection from "@/components/hero-section"
 import FeaturesSection from "@/components/features-section"
 import UrlImportSection from "@/components/url-import-section"
@@ -10,8 +9,7 @@ import SearchBar from "@/components/search-bar"
 export default function Home() {
   return (
     <div className="min-h-screen bg-background text-foreground pb-24">
-      <Navbar />
-      <div className="container mx-auto px-4 pt-20 pb-4">
+      <div className="container mx-auto px-4 pt-24 pb-4">
         <SearchBar />
       </div>
       <HeroSection />

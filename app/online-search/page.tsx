@@ -11,69 +11,122 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { useStore } from "@/contexts/store-context"
 import { useToast } from "@/components/ui/use-toast"
-import { testProducts } from "@/lib/test-products"
+
+const STORE_OPTIONS = [
+  ["amazon", "Amazon"],
+  ["nike", "Nike"],
+  ["zara", "Zara"],
+  ["nordstrom", "Nordstrom"],
+  ["asos", "ASOS"],
+  ["hm", "H&M"],
+  ["walmart", "Walmart"],
+  ["target", "Target"],
+  ["ebay", "eBay"],
+  ["etsy", "Etsy"],
+] as const
+
+interface OnlineProduct {
+  id: string
+  name: string
+  price: number
+  image: string
+  category: string
+  store: { id: string; name: string; domain: string }
+  url: string
+  rating: number | null
+  reviews: number | null
+}
 
 export default function OnlineSearchPage() {
   const searchParams = useSearchParams()
   const { toast } = useToast()
-  const { importFromUrl, loading, error } = useStore()
-
   const [searchQuery, setSearchQuery] = useState("")
   const [showFilters, setShowFilters] = useState(false)
-  const [searchResults, setSearchResults] = useState<any[]>([])
+  const [searchResults, setSearchResults] = useState<OnlineProduct[]>([])
   const [isSearching, setIsSearching] = useState(false)
-  const [tryOnProduct, setTryOnProduct] = useState<any | null>(null)
+  const [searchError, setSearchError] = useState<string | null>(null)
+  const [selectedStore, setSelectedStore] = useState("")
+  const [minPrice, setMinPrice] = useState("")
+  const [maxPrice, setMaxPrice] = useState("")
+  const [category, setCategory] = useState("")
+  const [sortBy, setSortBy] = useState("relevance")
+  const [tryOnProduct, setTryOnProduct] = useState<OnlineProduct | null>(null)
   const [userPhotoUrl, setUserPhotoUrl] = useState<string | null>(null)
   const [tryOnResult, setTryOnResult] = useState<string | null>(null)
   const [isTryOnProcessing, setIsTryOnProcessing] = useState(false)
   const [tryOnError, setTryOnError] = useState<string | null>(null)
 
-  // Initialize search query from URL params
   useEffect(() => {
     const query = searchParams.get("q")
-    if (query) {
-      setSearchQuery(query)
-      handleSearch(query)
-    }
+    if (query) setSearchQuery(query)
   }, [searchParams])
 
-  const handleSearch = async (query: string = searchQuery) => {
-    if (!query.trim()) return
-
-    setIsSearching(true)
-    setSearchResults([])
-
-    try {
-      // Use a deterministic local catalog so the try-on flow can be tested
-      // without depending on third-party store APIs or unstable scraping.
-      await new Promise((resolve) => setTimeout(resolve, 350))
-
-      const normalizedQuery = query.trim().toLowerCase()
-      const matchingProducts = testProducts.filter((product) =>
-        [product.name, product.brand, product.category, product.color, product.storeId]
-          .join(" ")
-          .toLowerCase()
-          .includes(normalizedQuery),
-      )
-      const results = (matchingProducts.length > 0 ? matchingProducts : testProducts).slice(0, 50).map((product) => ({
-        ...product,
-        store: { name: product.storeId === "hm" ? "H&M" : product.storeId === "asos" ? "ASOS" : product.storeId.charAt(0).toUpperCase() + product.storeId.slice(1), logo: product.storeLogo },
-        url: `https://${product.storeUrl}/products/${product.id}`,
-      }))
-
-      setSearchResults(results)
-    } catch (err) {
-      toast({
-        title: "Search failed",
-        description: "Failed to search for products. Please try again.",
-        variant: "destructive",
-      })
-    } finally {
-      setIsSearching(false)
+  useEffect(() => {
+    const query = searchQuery.trim()
+    if (query.length < 2) {
+      setSearchResults([])
+      setSearchError(null)
+      return
     }
+
+    const controller = new AbortController()
+    const timeout = window.setTimeout(async () => {
+      setIsSearching(true)
+      setSearchError(null)
+      try {
+        const params = new URLSearchParams({ q: query, limit: "40" })
+        if (selectedStore) params.set("store", selectedStore)
+        const response = await fetch(`/api/products/search?${params}`, { signal: controller.signal })
+        const result: unknown = await response.json()
+        if (
+          !response.ok ||
+          typeof result !== "object" ||
+          result === null ||
+          !("data" in result) ||
+          typeof result.data !== "object" ||
+          result.data === null ||
+          !("products" in result.data) ||
+          !Array.isArray(result.data.products)
+        ) {
+          const message =
+            typeof result === "object" && result !== null && "error" in result && typeof result.error === "string"
+              ? result.error
+              : "Product search failed."
+          throw new Error(message)
+        }
+        setSearchResults(result.data.products as OnlineProduct[])
+      } catch (error) {
+        if (controller.signal.aborted) return
+        const message = error instanceof Error ? error.message : "Unable to search stores right now."
+        setSearchError(message)
+        setSearchResults([])
+        toast({ title: "Search unavailable", description: message, variant: "destructive" })
+      } finally {
+        if (!controller.signal.aborted) setIsSearching(false)
+      }
+    }, 300)
+
+    return () => {
+      window.clearTimeout(timeout)
+      controller.abort()
+    }
+  }, [searchQuery, selectedStore, toast])
+
+  const handleSearch = () => {
+    setSearchQuery((query) => query.trim())
   }
+
+  const filteredResults = searchResults
+    .filter((product) => !category || product.category.toLowerCase().includes(category))
+    .filter((product) => !minPrice || product.price >= Number(minPrice))
+    .filter((product) => !maxPrice || product.price <= Number(maxPrice))
+    .sort((a, b) => {
+      if (sortBy === "price-low") return a.price - b.price
+      if (sortBy === "price-high") return b.price - a.price
+      if (sortBy === "rating") return (b.rating ?? 0) - (a.rating ?? 0)
+      return 0
+    })
 
   const handleOpenTryOn = (product: any) => {
     setTryOnProduct(product)
@@ -175,7 +228,7 @@ export default function OnlineSearchPage() {
             <Button
               className="w-full bg-orange-500 hover:bg-orange-600"
               onClick={() => handleSearch()}
-              disabled={isSearching || !searchQuery.trim()}
+            disabled={isSearching || searchQuery.trim().length < 2}
             >
               {isSearching ? "Searching..." : "Search Online"}
             </Button>
@@ -187,26 +240,23 @@ export default function OnlineSearchPage() {
                   <div>
                     <label className="text-sm text-muted-foreground">Price Range</label>
                     <div className="flex items-center gap-2">
-                      <Input type="number" placeholder="Min" className="text-sm" />
+                      <Input type="number" min="0" placeholder="Min" className="text-sm" value={minPrice} onChange={(event) => setMinPrice(event.target.value)} />
                       <span>-</span>
-                      <Input type="number" placeholder="Max" className="text-sm" />
+                      <Input type="number" min="0" placeholder="Max" className="text-sm" value={maxPrice} onChange={(event) => setMaxPrice(event.target.value)} />
                     </div>
                   </div>
 
                   <div>
                     <label className="text-sm text-muted-foreground">Store</label>
-                    <select className="w-full p-2 rounded-md border border-input bg-background">
+                    <select value={selectedStore} onChange={(event) => setSelectedStore(event.target.value)} className="w-full p-2 rounded-md border border-input bg-background">
                       <option value="">All Stores</option>
-                      <option value="amazon">Amazon</option>
-                      <option value="asos">ASOS</option>
-                      <option value="hm">H&M</option>
-                      <option value="zara">Zara</option>
+                      {STORE_OPTIONS.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
                     </select>
                   </div>
 
                   <div>
                     <label className="text-sm text-muted-foreground">Category</label>
-                    <select className="w-full p-2 rounded-md border border-input bg-background">
+                    <select value={category} onChange={(event) => setCategory(event.target.value)} className="w-full p-2 rounded-md border border-input bg-background">
                       <option value="">All Categories</option>
                       <option value="tops">Tops</option>
                       <option value="bottoms">Bottoms</option>
@@ -217,11 +267,11 @@ export default function OnlineSearchPage() {
 
                   <div>
                     <label className="text-sm text-muted-foreground">Sort By</label>
-                    <select className="w-full p-2 rounded-md border border-input bg-background">
+                    <select value={sortBy} onChange={(event) => setSortBy(event.target.value)} className="w-full p-2 rounded-md border border-input bg-background">
                       <option value="relevance">Relevance</option>
                       <option value="price-low">Price: Low to High</option>
                       <option value="price-high">Price: High to Low</option>
-                      <option value="newest">Newest</option>
+                      <option value="rating">Highest Rated</option>
                     </select>
                   </div>
                 </div>
@@ -236,14 +286,14 @@ export default function OnlineSearchPage() {
             <h3 className="text-lg font-medium mb-2">Searching online stores...</h3>
             <p className="text-muted-foreground">This may take a moment</p>
           </div>
-        ) : searchResults.length > 0 ? (
+        ) : filteredResults.length > 0 ? (
           <>
-            <h2 className="text-xl font-bold mb-4">Search Results</h2>
+            <h2 className="text-xl font-bold mb-4">Search Results <span className="text-sm font-normal text-muted-foreground">from supported retailers</span></h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
-              {searchResults.map((result) => (
+              {filteredResults.map((result) => (
                 <Card key={result.id} className="overflow-hidden group">
                   <div className="relative aspect-[3/4]">
-                    <Image src={result.image || "/placeholder.svg"} alt={result.name} fill className="object-cover" />
+                    <Image src={result.image || "/placeholder.svg"} alt={result.name} fill unoptimized className="object-cover" />
                     <Button
                       type="button"
                       size="sm"
@@ -257,24 +307,26 @@ export default function OnlineSearchPage() {
 
                   <CardContent className="p-3">
                     <div className="flex items-center gap-2 mb-2">
-                      <div className="w-5 h-5 relative rounded-full overflow-hidden bg-background">
-                        <Image
-                          src={result.store.logo || "/placeholder.svg"}
-                          alt={result.store.name}
-                          fill
-                          className="object-contain"
-                        />
-                      </div>
-                      <span className="text-xs text-muted-foreground">{result.store.name}</span>
+                      <span className="rounded-full bg-orange-500/10 px-2 py-1 text-xs text-orange-700 dark:text-orange-300">{result.store.name}</span>
                     </div>
                     <h3 className="font-medium text-sm line-clamp-2">{result.name}</h3>
                     <p className="font-bold text-orange-500 mt-1">${result.price}</p>
+                    {result.rating !== null && <p className="text-xs text-muted-foreground mt-1">★ {result.rating.toFixed(1)}{result.reviews ? ` · ${result.reviews} reviews` : ""}</p>}
+                    <a href={result.url} target="_blank" rel="noopener noreferrer" className="mt-3 inline-block text-sm text-orange-600 underline underline-offset-2">
+                      View product
+                    </a>
                   </CardContent>
                 </Card>
               ))}
             </div>
 
           </>
+        ) : searchError ? (
+          <div className="text-center py-12">
+            <ShoppingBag className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+            <h3 className="text-xl font-bold mb-2">Live search is unavailable</h3>
+            <p className="text-muted-foreground max-w-md mx-auto">{searchError}</p>
+          </div>
         ) : searchQuery && !isSearching ? (
           <div className="text-center py-12">
             <ShoppingBag className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
@@ -353,7 +405,7 @@ export default function OnlineSearchPage() {
                 </div>
                 {tryOnProduct && (
                   <div className="flex items-center gap-3 rounded-xl border border-border p-3">
-                    <div className="relative h-16 w-16 overflow-hidden rounded-lg bg-muted"><Image src={tryOnProduct.image || "/placeholder.svg"} alt={tryOnProduct.name} fill className="object-cover" /></div>
+                    <div className="relative h-16 w-16 overflow-hidden rounded-lg bg-muted"><Image src={tryOnProduct.image || "/placeholder.svg"} alt={tryOnProduct.name} fill unoptimized className="object-cover" /></div>
                     <div><p className="font-medium">{tryOnProduct.name}</p><p className="text-sm text-muted-foreground">{tryOnProduct.store?.name} · ${tryOnProduct.price}</p></div>
                   </div>
                 )}
@@ -365,4 +417,3 @@ export default function OnlineSearchPage() {
     </div>
   )
 }
-
